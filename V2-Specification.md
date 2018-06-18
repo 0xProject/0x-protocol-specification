@@ -55,7 +55,38 @@ In order to opt-in to using 0x protocol, users must approve an asset's associate
 All [`AssetProxy`](#assetproxy) contracts have the following minimum interface:
 
 ```
-contract IAssetProxy {
+contract IAuthorizable {
+
+    /// @dev Gets all authorized addresses.
+    /// @return Array of authorized addresses.
+    function getAuthorizedAddresses()
+        external
+        view
+        returns (address[]);
+
+    /// @dev Authorizes an address.
+    /// @param target Address to authorize.
+    function addAuthorizedAddress(address target)
+        external;
+
+    /// @dev Removes authorizion of an address.
+    /// @param target Address to remove authorization from.
+    function removeAuthorizedAddress(address target)
+        external;
+
+    /// @dev Removes authorizion of an address.
+    /// @param target Address to remove authorization from.
+    /// @param index Index of target in authorities array.
+    function removeAuthorizedAddressAtIndex(
+        address target,
+        uint256 index
+    )
+        external;
+}
+
+contract IAssetProxy is
+    IAuthorizable
+{
 
     /// @dev Transfers assets. Either succeeds or throws.
     /// @param assetData Byte array encoded for the respective asset proxy.
