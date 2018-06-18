@@ -3,6 +3,7 @@
     1.  [Exchange](#exchange)
     1.  [AssetProxy](#assetproxy)
     1.  [AssetProxyOwner](#assetproxyowner)
+1.  [Contract Interactions](#interactions)
 1.  [Orders](#orders)
     1.  [Message format](#order-message-format)
     1.  [Hashing an order](#hashing-an-order)
@@ -165,6 +166,8 @@ TODO: Determine Exchange owner
 ## AssetProxyOwner
 
 The AssetProxyOwner contract is indirectly responsible for updating the [`Exchange`](#exchange) contracts that are allowed to call the transfer methods on each [`AssetProxy`](#assetproxy) contract. It is the only address that is allowed to call `addAuthorizedAddress` and `removeAuthorizedAddress` on each [`AssetProxy`](#assetproxy). Any transaction created by the `AssetProxyOwner` must be proposed, confirmed, and then may be executed after a 2 week timelock. The only exception to this is that `removeAuthorizedAddress` may be executed immediately, in case of security related bugs. The `AssetProxyOwner` may also call `transferOwnership`, allowing it to swap itself out with an upgraded contract.
+
+# Contract Interactions
 
 # Orders
 
