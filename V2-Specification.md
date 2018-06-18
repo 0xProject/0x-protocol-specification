@@ -135,6 +135,8 @@ This contract expects [`assetData`](#assetdata) to be encoded in the following w
 | ------ | ------ | ---------------------- |
 | 0x00   | 20     | Address of ERC20 token |
 
+The `ERC20Proxy` performs the transfer by calling the token's `transferFrom` method. The transaction will be reverted if the owner has insufficient balance or if the `ERC20Proxy` does not have sufficient allowance to perform the transfer.
+
 ### ERC721Proxy
 
 The ERC20Proxy is responsible for transferring [ERC721 tokens](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-721.md). Users must first approve this contract by calling the `approve` or `setApprovalForAll` methods on the token that will be exchanged. `setApprovalForAll` is highly recommended, because it allows the user to approve multiple `tokenIds` with a single transaction.
@@ -147,6 +149,8 @@ This contract expects [`assetData`](#assetdata) to be encoded in the following w
 | 0x14   | 32     | tokenId of ERC721 token                                   |
 | 0x34   | 32     | Length of `data` to pass to `onERC721Received` (optional) |
 | 0x54   | x      | `data` to pass to `onERC721Received` (optional)           |
+
+The `ERC721Proxy` performs the transfer by calling the token's `safeTransferFrom` method. The transaction will be reverted if the owner has insufficient balance or if the `ERC721Proxy` is not approved to perform the transfer.
 
 ### Adding new AssetProxy contracts
 
@@ -607,8 +611,9 @@ Transaction messages exist for the purpose of calling methods on the [`Exchange`
 The hash of a transaction is used as a unique identifier for that transaction. A transaction is hashed according to the [EIP712 specification](#https://github.com/ethereum/EIPs/pull/712/files). See the [EIP712 Usage](#eip712-usage) section for information on how to calculate the required domain separator for hashing an order.
 
 ```
-bytes32 constant EIP712_EXECUTE_TRANSACTION_SCHEMA_HASH = keccak256(abi.encodePacked(
-    "ExecuteTransaction(",
+// Hash for the EIP712 ZeroEx Transaction Schema
+bytes32 constant EIP712_ZEROEX_TRANSACTION_SCHEMA_HASH = keccak256(abi.encodePacked(
+    "ZeroExTransaction(",
     "uint256 salt,",
     "address signer,",
     "bytes data",
@@ -617,9 +622,9 @@ bytes32 constant EIP712_EXECUTE_TRANSACTION_SCHEMA_HASH = keccak256(abi.encodePa
 
 bytes32 transactionHash = keccak256(abi.encodePacked(
     EIP191_HEADER,
-    EIP712_DOMAIN_SEPARATOR,
+    EIP712_DOMAIN_HASH,
     keccak256(abi.encodePacked(
-        EIP712_EXECUTE_TRANSACTION_SCHEMA_HASH,
+        EIP712_ZEROEX_TRANSACTION_SCHEMA_HASH,
         salt,
         bytes32(signer),
         keccak256(abi.encodePacked(data))
@@ -1242,22 +1247,22 @@ Hashes of orders and transactions are calculated according to the [EIP712 specif
 The domain separator for the Exchange contract can be calculated with:
 
 ```
-string public constant EIP191_HEADER = "\x19\x01";
-bytes32 public constant EIP712_DOMAIN_SEPARATOR_NAME_HASH = keccak256("0x Protocol");
-bytes32 public constant EIP712_DOMAIN_SEPARATOR_VERSION_HASH = keccak256("2");
+// EIP191 header for EIP712 prefix
+string constant EIP191_HEADER = "\x19\x01";
 
+// Hash of the EIP712 Domain Separator Schema
 bytes32 public constant EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH = keccak256(abi.encodePacked(
-    "DomainSeparator(",
+    "EIP712Domain(",
     "string name,",
     "string version,",
-    "address contract",
+    "address verifyingContract",
     ")"
 ));
 
-bytes32 EIP712_DOMAIN_SEPARATOR = keccak256(abi.encodePacked(
+bytes32 EIP712_DOMAIN_HASH = keccak256(abi.encodePacked(
     EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH,
-    EIP712_DOMAIN_SEPARATOR_NAME_HASH,
-    EIP712_DOMAIN_SEPARATOR_VERSION_HASH,
+    keccak256(abi.encodePacked("0x Protocol")),
+    keccak256(abi.encodePacked("2")),
     bytes32(address(this))
 ));
 ```
