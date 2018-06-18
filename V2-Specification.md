@@ -1,61 +1,174 @@
-TODO: Update transactions with EIP712
-TODO: architecture section with diagram
-TODO: Sections on AssetProxy contracts, AssetProxyOwner, and AssetProxyDispatcher
-TODO: Make sure all links work
-TODO: Update table of contents
-TODO: Errors
-
 1.  [Architecture](#architecture)
-1.  [Orders](#orders)
-1.  [Transactions](#transactions)
-1.  [Signatures](#signatures)
 1.  [Contracts](#contracts)
-1.  [Recommendations](#recommendations)
+    1.  [Exchange](#exchange)
+    1.  [AssetProxy](#assetproxy)
+    1.  [AssetProxyOwner](#assetproxyowner)
+1.  [Orders](#orders)
+    1.  [Message format](#order-message-format)
+    1.  [Hashing an order](#hashing-an-order)
+    1.  [Creating an order](#creating-an-order)
+    1.  [Filling orders](#filling-orders)
+    1.  [Cancelling orders](#cancelling-orders)
+    1.  [Querying state of an order](#querying-state-of-an-order)
+1.  [Transactions](#transactions)
+    1.  [Messsage format](#transaction-message-format)
+    1.  [Hash of a transaction](#hash-of-a-transaction)
+    1.  [Creating a transaction](#creating-a-transaction)
+    1.  [Executing a transaction](#executing-a-transaction)
+    1.  [Filter contracts](#filter-contracts)
+1.  [Signatures](#signatures)
+    1.  [Validating signatures](#validating-signatures)
+    1.  [Signature types](#signature-types)
+1.  [Events](#events)
+    1.  [Exchange events](#exchange-events)
+    1.  [AssetProxy events](#assetproxy-events)
+    1.  [AssetProxyOwner events](#assetproxyowner-events)
+1.  [Types](#types)
+1.  [Miscellaneous](#miscellaneous)
+    1.  [EIP712 usage](#eip712-usage)
+    1.  [Optimizing calldata](#optimizing-calldata)
 
 # Architecture
 
+# Contracts
+
+## Exchange
+
+The Exchange contract contains the bulk of the business logic within 0x protocol. It the entry point for:
+
+1.  Filling orders
+2.  Cancelling orders
+3.  Executing [transactions](#transactions)
+4.  Validating signatures
+5.  Registering new [AssetProxy](#assetproxy) contracts into the system
+
+## AssetProxy
+
+The `AssetProxy` contracts are responsible for:
+
+1.  Decoding asset specific metadata contained within an order
+2.  Performing the actual asset transfer
+3.  Authorizing/unauthorizing Exchange contract addresses from calling the transfer methods on this `AssetProxy`
+
+In order to opt-in to using 0x protocol, users must approve an asset's associated `AssetProxy` to transfer the asset on their behalf. All `AssetProxy` contracts are currently identified by a unique value represented as an 8-bit unsigned integer. This type was chosen for efficiency reasons, but may be extended in the future.
+
+All `AssetProxy` contracts have the following minimum interface:
+
+```
+contract IAssetProxy {
+
+    /// @dev Transfers assets. Either succeeds or throws.
+    /// @param assetData Byte array encoded for the respective asset proxy.
+    /// @param from Address to transfer asset from.
+    /// @param to Address to transfer asset to.
+    /// @param amount Amount of asset to transfer.
+    function transferFrom(
+        bytes assetData,
+        address from,
+        address to,
+        uint256 amount
+    )
+        external;
+
+    /// @dev Makes multiple transfers of assets. Either succeeds or throws.
+    /// @param assetData Array of byte arrays encoded for the respective asset proxy.
+    /// @param from Array of addresses to transfer assets from.
+    /// @param to Array of addresses to transfer assets to.
+    /// @param amounts Array of amounts of assets to transfer.
+    function batchTransferFrom(
+        bytes[] memory assetData,
+        address[] memory from,
+        address[] memory to,
+        uint256[] memory amounts
+    )
+        public;
+
+    /// @dev Gets the proxy id associated with the proxy address.
+    /// @return Proxy id.
+    function getProxyId()
+        external
+        view
+        returns (uint8);
+}
+```
+
+Currently, the protocol includes `AssetProxy` contracts for ERC20 and ERC721 tokens.
+
+### ERC20Proxy
+
+The ERC20Proxy is responsible for transferring [ERC20 tokens](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-20.md). Users must first approve this contract by calling the `approve` method on the token that will be exchanged. It is recommended that users approve a value of 2^256 -1. This minimizes the amount of times `approve` must be called, and also [increases efficiency](https://github.com/ethereum/EIPs/issues/717) for many ERC20 tokens.
+
+This contract expects [`assetData`](#assetdata) to be encoded in the following way:
+
+| Offset | Length | Contents               |
+| ------ | ------ | ---------------------- |
+| 0x00   | 20     | Address of ERC20 token |
+
+### ERC721Proxy
+
+The ERC20Proxy is responsible for transferring [ERC721 tokens](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-721.md). Users must first approve this contract by calling the `approve` or `setApprovalForAll` methods on the token that will be exchanged. `setApprovalForAll` is highly recommended, because it allows the user to approve multiple `tokenIds` with a single transaction.
+
+This contract expects [`assetData`](#assetdata) to be encoded in the following way:
+
+| Offset | Length | Contents                                                  |
+| ------ | ------ | --------------------------------------------------------- |
+| 0x00   | 20     | Address of ERC721 token                                   |
+| 0x14   | 32     | tokenId of ERC721 token                                   |
+| 0x34   | 32     | Length of `data` to pass to `onERC721Received` (optional) |
+| 0x54   | x      | `data` to pass to `onERC721Received` (optional)           |
+
+### Adding new AssetProxy contracts
+
+New `AssetProxy` contracts may be added into the system by calling `registerAssetProxy` on the `Exchange` contract.
+
+TODO: Determine Exchange owner
+
+## AssetProxyOwner
+
+The AssetProxyOwner contract is indirectly responsible for updating the `Exchange` contracts that are allowed to call the transfer methods on each `AssetProxy` contract. It is the only address that is allowed to call `addAuthorizedAddress` and `removeAuthorizedAddress` on each `AssetProxy`. Any transaction created by the `AssetProxyOwner` must be proposed, confirmed, and then may be executed after a 2 week timelock. The only exception to this is that `removeAuthorizedAddress` may be executed immediately, in case of a security related bugs. The `AssetProxyOwner` may also call `transferOwnership`, allowing it to swap itself out with an upgraded contract.
+
 # Orders
 
-## Message format
+## Order message format
 
 An order message consists of the following parameters:
 
-| Parameter                    | Type    | Description                                                                                                                                      |
-| ---------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| makerAddress                 | address | Address that created the order.                                                                                                                  |
-| takerAddress                 | address | Address that is allowed to fill the order. If set to 0, any address is allowed to fill the order.                                                |
-| feeRecipientAddress          | address | Address that will recieve fees when order is filled.                                                                                             |
-| [senderAddress](#sender)     | address | Address that is allowed to call Exchange contract methods that take orders as inputs. If set to 0, any address is allowed to call these methods. |
-| makerAssetAmount             | uint256 | Amount of makerAsset being offered by maker. Must be greater than 0.                                                                             |
-| takerAssetAmount             | uint256 | Amount of takerAsset being bid on by maker. Must be greater than 0.                                                                              |
-| makerFee                     | uint256 | Amount of ZRX paid to feeRecipient by maker when order is filled. If set to 0, no transfer of ZRX from maker to feeRecipient will be attempted.  |
-| takerFee                     | uint256 | Amount of ZRX paid to feeRecipient by taker when order is filled. If set to 0, no transfer of ZRX from taker to feeRecipient will be attempted.  |
-| expirationTimeSeconds        | uint256 | Timestamp in seconds at which order expires.                                                                                                     |
-| [salt]()                     | uint256 | Arbitrary number to facilitate uniqueness of the order's hash.                                                                                   |
-| [makerAssetData](#salt)      | bytes   | Encoded data that can be decoded by a specified proxy contract when transferring makerAsset. The last byte must reference the id of this proxy.  |
-| [takerAssetData](#assetdata) | bytes   | Encoded data that can be decoded by a specified proxy contract when transferring takerAsset. The last byte must reference the id of this proxy.  |
+| Parameter                       | Type    | Description                                                                                                                                      |
+| ------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| makerAddress                    | address | Address that created the order.                                                                                                                  |
+| takerAddress                    | address | Address that is allowed to fill the order. If set to 0, any address is allowed to fill the order.                                                |
+| feeRecipientAddress             | address | Address that will recieve fees when order is filled.                                                                                             |
+| [senderAddress](#senderaddress) | address | Address that is allowed to call Exchange contract methods that take orders as inputs. If set to 0, any address is allowed to call these methods. |
+| makerAssetAmount                | uint256 | Amount of makerAsset being offered by maker. Must be greater than 0.                                                                             |
+| takerAssetAmount                | uint256 | Amount of takerAsset being bid on by maker. Must be greater than 0.                                                                              |
+| makerFee                        | uint256 | Amount of ZRX paid to feeRecipient by maker when order is filled. If set to 0, no transfer of ZRX from maker to feeRecipient will be attempted.  |
+| takerFee                        | uint256 | Amount of ZRX paid to feeRecipient by taker when order is filled. If set to 0, no transfer of ZRX from taker to feeRecipient will be attempted.  |
+| expirationTimeSeconds           | uint256 | Timestamp in seconds at which order expires.                                                                                                     |
+| [salt](#salt)                   | uint256 | Arbitrary number to facilitate uniqueness of the order's hash.                                                                                   |
+| [makerAssetData](#assetdata)    | bytes   | Encoded data that can be decoded by a specified proxy contract when transferring makerAsset. The last byte must reference the id of this proxy.  |
+| [takerAssetData](#assetdata)    | bytes   | Encoded data that can be decoded by a specified proxy contract when transferring takerAsset. The last byte must reference the id of this proxy.  |
 
-### Sender
+### SenderAddress
+
+If the `senderAddress` of an order is not set to 0, only that address may call `Exchange` contract methods that affect that order. See the [filter contracts examples](#filter-contracts) for more information.
 
 ### Salt
 
 An order's `salt` parameter has two main usecases:
 
-*   To ensure uniqueness within an order's hash.
-*   To be used in combination with [`cancelOrdersUpTo`](#cancelordersupto). To get the most benefit of this usecase, it is recommended that the `salt` field be treated as a timestamp for when orders have been created. A timestamp in milliseconds would allow a `maker` to create 1000 orders with the same parameters per second.
+-   To ensure uniqueness within an order's hash.
+-   To be used in combination with [`cancelOrdersUpTo`](#cancelordersupto). To get the most benefit of this usecase, it is recommended that the `salt` field be treated as a timestamp for when orders have been created. A timestamp in milliseconds would allow a `maker` to create 1000 orders with the same parameters per second.
 
 ### AssetData
 
+The `makerAssetData` and `takerAssetData` fileds of an order contain information specific to that asset. The last byte of this data must reference the id of an `AssetProxy` contract that is intended to decode the remaining data. The last byte is popped off of the `assetData` byte arrays before being dispatched to the corresponding `AssetProxy`.
+
 ## Hashing an order
 
-The hash of an order is used as a unique identifier of that order. An order is hashed according to the [EIP712 specification](https://github.com/ethereum/EIPs/pull/712/files).
+The hash of an order is used as a unique identifier of that order. An order is hashed according to the [EIP712 specification](#https://github.com/ethereum/EIPs/pull/712/files). See the [EIP712 Usage](#eip712-usage) section for information on how to calculate the required domain separator for hashing an order.
 
 ```
-bytes32 constant DOMAIN_SEPARATOR_SCHEMA_HASH = keccak256(
-    "DomainSeparator(address contract)"
-);
-
-bytes32 constant ORDER_SCHEMA_HASH = keccak256(
+bytes32 constant EIP712_ORDER_SCHEMA_HASH = keccak256(abi.encodePacked(
     "Order(",
     "address makerAddress,",
     "address takerAddress,",
@@ -70,27 +183,29 @@ bytes32 constant ORDER_SCHEMA_HASH = keccak256(
     "bytes makerAssetData,",
     "bytes takerAssetData,",
     ")"
-);
+));
 
-bytes32 orderHash = keccak256(
-    DOMAIN_SEPARATOR_SCHEMA_HASH,
-    keccak256(address(this)),
-    ORDER_SCHEMA_HASH,
-    keccak256(
-        order.makerAddress,
-        order.takerAddress,
-        order.feeRecipientAddress,
-        order.senderAddress,
-        order.makerAssetAmount,
-        order.takerAssetAmount,
-        order.makerFee,
-        order.takerFee,
-        order.expirationTimeSeconds,
-        order.salt,
-        keccak256(order.makerAssetData),
-        keccak256(order.takerAssetData)
-    )
-);
+bytes32 orderHash = keccak256(abi.encodePacked(
+    EIP191_HEADER,
+    EIP712_DOMAIN_SEPARATOR,
+    keccak256(abi.encodePacked(
+        EIP712_ORDER_SCHEMA_HASH,
+        keccak256(abi.encodePacked(
+            order.makerAddress,
+            order.takerAddress,
+            order.feeRecipientAddress,
+            order.senderAddress,
+            order.makerAssetAmount,
+            order.takerAssetAmount,
+            order.makerFee,
+            order.takerFee,
+            order.expirationTimeSeconds,
+            order.salt,
+            keccak256(abi.encodePacked(order.makerAssetData)),
+            keccak256(abi.encodePacked(order.takerAssetData))
+        ))
+    ))
+));
 ```
 
 ## Creating an order
@@ -107,16 +222,16 @@ This is the most basic way to fill an order. All of the other methods call `fill
 
 `fillOrder` will revert under the following conditions:
 
-*   The caller of `fillOrder` is different from the `sender` specified in the order (unless `sender == address(0)`).
-*   The taker of `fillOrder` is different from the `taker` specified in the order (unless `taker == address(0)`).
-*   An invalid signature is submitted (this is only checked the first time an order is filled).
-*   The `makerAssetAmount` or `takerAssetAmount` specified in the order are equal to 0.
-*   The amount that the taker is attempting to fill is 0.
-*   The order has expired.
-*   The order has been cancelled.
-*   The order has already been fully filled.
-*   Filling the order results in a rounding error > 0.1% of the `takerAssetAmount` that would otherwise be filled.
-*   Any transfers associated with the fill fail.
+-   The caller of `fillOrder` is different from the `sender` specified in the order (unless `sender == address(0)`).
+-   The taker of `fillOrder` is different from the `taker` specified in the order (unless `taker == address(0)`).
+-   An invalid signature is submitted (this is only checked the first time an order is filled).
+-   The `makerAssetAmount` or `takerAssetAmount` specified in the order are equal to 0.
+-   The amount that the taker is attempting to fill is 0.
+-   The order has expired.
+-   The order has been cancelled.
+-   The order has already been fully filled.
+-   Filling the order results in a rounding error > 0.1% of the `takerAssetAmount` that would otherwise be filled.
+-   Any transfers associated with the fill fail.
 
 If successful, `fillOrder` will emit a [`Fill`](#fill) event. If the transaction does not revert, a [`FillResults`](#fillresults) instance will be returned.
 
@@ -182,12 +297,15 @@ function fillOrderNoThrow(
 /// @param orders Array of order specifications.
 /// @param takerAssetFillAmounts Array of desired amounts of takerAsset to sell in orders.
 /// @param signatures Proofs that orders have been created by makers.
+/// @return Amounts filled and fees paid by makers and taker.
+///         NOTE: makerAssetFilledAmount and takerAssetFilledAmount may include amounts filled of different assets.
 function batchFillOrders(
     Order[] memory orders,
     uint256[] memory takerAssetFillAmounts,
     bytes[] memory signatures
 )
     public;
+    returns (FillResults memory totalFillResults)
 ```
 
 ### batchFillOrKillOrders
@@ -199,12 +317,15 @@ function batchFillOrders(
 /// @param orders Array of order specifications.
 /// @param takerAssetFillAmounts Array of desired amounts of takerAsset to sell in orders.
 /// @param signatures Proofs that orders have been created by makers.
+/// @return Amounts filled and fees paid by makers and taker.
+///         NOTE: makerAssetFilledAmount and takerAssetFilledAmount may include amounts filled of different assets.
 function batchFillOrKillOrders(
     Order[] memory orders,
     uint256[] memory takerAssetFillAmounts,
     bytes[] memory signatures
 )
     public;
+    returns (FillResults memory totalFillResults)
 ```
 
 ### batchFillOrdersNoThrow
@@ -216,12 +337,15 @@ function batchFillOrKillOrders(
 /// @param orders Array of order specifications.
 /// @param takerAssetFillAmounts Array of desired amounts of takerAsset to sell in orders.
 /// @param signatures Proofs that orders have been created by makers.
+/// @return Amounts filled and fees paid by makers and taker.
+///         NOTE: makerAssetFilledAmount and takerAssetFilledAmount may include amounts filled of different assets.
 function batchFillOrdersNoThrow(
     Order[] memory orders,
     uint256[] memory takerAssetFillAmounts,
     bytes[] memory signatures
 )
     public;
+    returns (FillResults memory totalFillResults)
 ```
 
 ### marketSellOrders
@@ -350,11 +474,11 @@ function matchOrders(
 
 `cancelOrder` will revert under the following conditions:
 
-*   The `makerAssetAmount` or `takerAssetAmount` specified in the order are equal to 0.
-*   The caller of `cancelOrder` is different from the `sender` specified in the order (unless `sender == address(0)`).
-*   The `maker` of the order has not authorized the cancel, either by calling `cancelOrder` through an Ethereum transaction or a [0x transaction](#transactions).
-*   The order has expired.
-*   The order has already been cancelled.
+-   The `makerAssetAmount` or `takerAssetAmount` specified in the order are equal to 0.
+-   The caller of `cancelOrder` is different from the `sender` specified in the order (unless `sender == address(0)`).
+-   The `maker` of the order has not authorized the cancel, either by calling `cancelOrder` through an Ethereum transaction or a [0x transaction](#transactions).
+-   The order has expired.
+-   The order has already been cancelled.
 
 If successful, `cancelOrder` will emit a [`Cancel`](#cancel) event.
 
@@ -369,12 +493,13 @@ function cancelOrder(Order memory order)
 
 ### cancelOrdersUpTo
 
-`cancelOrdersUpTo` invalidates all orders created by the caller that have a `salt` value that is less than or equal to the specified `newMakerEpoch` and updates the current `makerEpoch`. This function will revert if `newMakerEpoch` is less than or equal to the current `makerEpoch`. If successful, `cancelOrdersUpTo` will emit a [`CancelUpTo`](#cancelupto) event.
+`cancelOrdersUpTo` invalidates all orders created by the maker that have 1) a `salt` value that is less than or equal to the specified `targetOrderEpoch` and 2) that have a `senderAddress` value equal to the caller (or null address if the caller is the maker). `cancelOrdersUpTo` also updates the current `orderEpoch`. This function will revert if `targetOrderEpoch` is less than or equal to the current `orderEpoch`. If successful, `cancelOrdersUpTo` will emit a [`CancelUpTo`](#cancelupto) event.
 
 ```
-/// @dev Cancels all orders created by caller that contain a salt value less than or equal to newMakerEpoch.
-/// @param newMakerEpoch Orders created with a salt less or equal to this value will be cancelled.
-function cancelOrdersUpTo(uint256 newMakerEpoch)
+/// @dev Cancels all orders created by makerAddress with a salt less than or equal to the targetOrderEpoch
+///      and senderAddress equal to msg.sender (or null address if msg.sender == makerAddress).
+/// @param targetOrderEpoch Orders created with a salt less or equal to this value will be cancelled.
+function cancelOrdersUpTo(uint256 targetOrderEpoch)
     external;
 ```
 
@@ -396,7 +521,7 @@ function batchCancelOrders(Order[] memory orders)
 The Exchange contract contains a mapping that records the nominal amount of an order's `takerAssetAmount` that has already been filled. This mapping is updated each time an order is successfully filled, allowing for partial fills.
 
 ```
-// Mapping of orderHash => anominal mount of takerToken already bought by maker
+// Mapping of orderHash => amount of takerAsset already bought by maker
 mapping (bytes32 => uint256) public filled;
 ```
 
@@ -409,14 +534,14 @@ The Exchange contract contains a mapping that records if an order has been cance
 mapping (bytes32 => bool) public cancelled;
 ```
 
-### makerEpoch
+### orderEpoch
 
-The Exchange contract contains a mapping that specifies the `makerEpoch` for each address, which invalidates all orders created by that address that contain a salt value less than or equal to the current `makerEpoch`.
+The Exchange contract contains a mapping that specifies the `orderEpoch` for a given `makerAddress`/`senderAddress` pair, which invalidates all orders containing that pair that contain a salt value less than or equal to the current `orderEpoch`.
 
 ```
-// Mapping of makerAddress => lowest salt an order can have in order to be fillable
-// Orders with a salt less than their maker's epoch are considered cancelled
-mapping (address => uint256) public makerEpoch;
+// Mapping of makerAddress => senderAddress => lowest salt an order can have in order to be fillable
+// Orders with specified senderAddress and with a salt less than their epoch to are considered cancelled
+mapping (address => mapping (address => uint256)) public orderEpoch;
 ```
 
 ### getOrderInfo
@@ -436,7 +561,9 @@ function getOrderInfo(Order memory order)
 
 # Transactions
 
-## Message format
+Transaction messages exist for the purpose of calling methods on the `Exchange` contract in the context of another address (see [ZEIP18](https://github.com/0xProject/ZEIPs/issues/18)). This is especially useful for implementing [filter contracts](#filter-contracts).
+
+## Transaction message format
 
 | Parameter | Type    | Description                                                                      |
 | --------- | ------- | -------------------------------------------------------------------------------- |
@@ -446,17 +573,27 @@ function getOrderInfo(Order memory order)
 
 ## Hash of a transaction
 
-TODO: EIP712 hash
-
-The hash of a transaction is used as a unique identifier for that transaction. A transaction's hash is defined as the [tightly packed]() Keccak 256 hash of the Exchange contract address and transaction's parameters.
+The hash of a transaction is used as a unique identifier for that transaction. A transaction is hashed according to the [EIP712 specification](#https://github.com/ethereum/EIPs/pull/712/files). See the [EIP712 Usage](#eip712-usage) section for information on how to calculate the required domain separator for hashing an order.
 
 ```
-bytes32 transactionHash = keccak256(
-    address(this),
-    signer,
-    salt,
-    data
-);
+bytes32 constant EIP712_EXECUTE_TRANSACTION_SCHEMA_HASH = keccak256(abi.encodePacked(
+    "ExecuteTransaction(",
+    "uint256 salt,",
+    "address signer,",
+    "bytes data",
+    ")"
+));
+
+bytes32 transactionHash = keccak256(abi.encodePacked(
+    EIP191_HEADER,
+    EIP712_DOMAIN_SEPARATOR,
+    keccak256(abi.encodePacked(
+        EIP712_EXECUTE_TRANSACTION_SCHEMA_HASH,
+        salt,
+        bytes32(signer),
+        keccak256(abi.encodePacked(data))
+    ))
+));
 ```
 
 ## Creating a transaction
@@ -465,16 +602,14 @@ A transaction may only be executed if it can be paired with an associated valid 
 
 ## Executing a transaction
 
-### API
-
 A transaction may only be executed by calling the `executeTransaction` method of the Exchange contract. `executeTransaction` attempts to execute any function on the Exchange contract in the context of the transaction signer (rather than `msg.sender`).
 
 `executeTransaction` will revert under the following conditions:
 
-*   Reentrancy is attempted (e.g `executeTransaction` calls `executeTransaction` again).
-*   A transaction with an equivalent hash has already been executed.
-*   An invalid signature is submitted.
-*   The execution of the provided data reverts. TODO: is this desired behavior?
+-   Reentrancy is attempted (e.g `executeTransaction` calls `executeTransaction` again).
+-   A transaction with an equivalent hash has already been executed.
+-   An invalid signature is submitted.
+-   The execution of the provided data reverts.
 
 ```
 /// @dev Executes an exchange method call in the context of signer.
@@ -491,15 +626,214 @@ function executeTransaction(
     external;
 ```
 
-### Example
+## Filter contracts
 
-TODO: Link to whitelist contract
+A filter contract is intended to add or remove logic to how orders are executed. An order may be tied to a specific filter contract by setting its `senderAddress` to the address of the desired filter contract.
+
+Here are some simple examples that demonstrate how filter contracts may be used:
+
+### ExchangeWrapper
+
+This contract does not add any additional logic to how orders are filled or cancelled. It is primarily intended to show the flow of data from a filter contract to the `Exchange` contract. It is important to note that orders that specify this contract as the `senderAddress` would _only_ be able to use the methods defined in this filter contract. Those orders could not be filled or cancelled with any other `Exchange` methods.
+
+```
+contract ExchangeWrapper {
+
+    // Exchange contract.
+    IExchange EXCHANGE;
+
+    constructor (address _exchange)
+        public
+    {
+        EXCHANGE = IExchange(_exchange);
+    }
+
+    /// @dev Fills an order using `msg.sender` as the taker.
+    /// @param order Order struct containing order specifications.
+    /// @param takerAssetFillAmount Desired amount of takerAsset to sell.
+    /// @param salt Arbitrary value to gaurantee uniqueness of 0x transaction hash.
+    /// @param orderSignature Proof that order has been created by maker.
+    /// @param takerSignature Proof that taker wishes to call this function with given params.
+    function fillOrder(
+        LibOrder.Order memory order,
+        uint256 takerAssetFillAmount,
+        uint256 salt,
+        bytes memory orderSignature,
+        bytes memory takerSignature
+    )
+        public
+    {
+        address takerAddress = msg.sender;
+
+        // Encode arguments into byte array.
+        bytes memory data = abi.encodeWithSelector(
+            EXCHANGE.fillOrder.selector,
+            order,
+            takerAssetFillAmount,
+            orderSignature
+        );
+
+        // Call `fillOrder` via `executeTransaction`.
+        EXCHANGE.executeTransaction(
+            salt,
+            takerAddress,
+            data,
+            takerSignature
+        );
+    }
+
+    /// @dev Cancels all orders created by sender with a salt less than or equal to the specified salt value.
+    /// @param cancelSalt Orders created with a salt less or equal to this value will be cancelled.
+    /// @param salt Arbitrary value to gaurantee uniqueness of 0x transaction hash.
+    /// @param makerSignature Proof that maker wishes to call this function with given params.
+    function cancelOrdersUpTo(
+        uint256 cancelSalt,
+        uint256 salt,
+        bytes makerSignature
+    )
+        external
+    {
+        address makerAddress = msg.sender;
+
+        // Encode arguments into byte array.
+        bytes memory data = abi.encodeWithSelector(
+            EXCHANGE.cancelOrdersUpTo.selector,
+            cancelSalt
+        );
+
+        // Call `cancelOrdersUpTo` via `executeTransaction`.
+        EXCHANGE.executeTransaction(
+            salt,
+            makerAddress,
+            data,
+            makerSignature
+        );
+    }
+}
+```
+
+### Whitelist
+
+This contract is a bit more complex than the last. Orders that specify this contract as the `senderAddress` could only be filled if both the maker and taker of the order are on a whitelist created by the filter contract owner.
+
+This contract also makes use of the [`Validator`](#validator) signature type. Rather than requiring the taker to sign a 0x transaction _and_ an Ethereum transaction to call this contract, this contract makes use of `tx.origin` to only require a signed Ethereum transaction (this may have dangerous consequences without extra measures and is only intended to be an example).
+
+```
+contract Whitelist is
+    Ownable
+{
+    // Revert reasons
+    string constant MAKER_NOT_WHITELISTED = "Maker address not whitelisted.";
+    string constant TAKER_NOT_WHITELISTED = "Taker address not whitelisted.";
+    string constant INVALID_SENDER = "Sender must equal transaction origin.";
+
+    // Mapping of address => whitelist status.
+    mapping (address => bool) public isWhitelisted;
+
+    // Exchange contract.
+    IExchange EXCHANGE;
+
+    byte constant VALIDATOR_SIGNATURE_BYTE = "\x06";
+    bytes TX_ORIGIN_SIGNATURE;
+
+    constructor (address _exchange)
+        public
+    {
+        EXCHANGE = IExchange(_exchange);
+        TX_ORIGIN_SIGNATURE = abi.encodePacked(address(this), VALIDATOR_SIGNATURE_BYTE);
+    }
+
+    /// @dev Adds or removes an address from the whitelist.
+    /// @param target Address to add or remove from whitelist.
+    /// @param isApproved Whitelist status to assign to address.
+    function updateWhitelistStatus(
+        address target,
+        bool isApproved
+    )
+        external
+        onlyOwner
+    {
+        isWhitelisted[target] = isApproved;
+    }
+
+    /// @dev Fills an order using `msg.sender` as the taker.
+    ///      The transaction will revert if both the maker and taker are not whitelisted.
+    ///      Orders should specify this contract as the `senderAddress` in order to gaurantee
+    ///      that both maker and taker have been whitelisted.
+    /// @param order Order struct containing order specifications.
+    /// @param takerAssetFillAmount Desired amount of takerAsset to sell.
+    /// @param salt Arbitrary value to gaurantee uniqueness of 0x transaction hash.
+    /// @param orderSignature Proof that order has been created by maker.
+    function fillOrderIfWhitelisted(
+        LibOrder.Order memory order,
+        uint256 takerAssetFillAmount,
+        uint256 salt,
+        bytes memory orderSignature
+    )
+        public
+    {
+        address takerAddress = msg.sender;
+
+        // This contract must be the entry point for the transaction.
+        require(
+            takerAddress == tx.origin,
+            INVALID_SENDER
+        );
+
+        // Check if maker is on the whitelist.
+        require(
+            isWhitelisted[order.makerAddress],
+            MAKER_NOT_WHITELISTED
+        );
+
+        // Check if taker is on the whitelist.
+        require(
+            isWhitelisted[takerAddress],
+            TAKER_NOT_WHITELISTED
+        );
+
+        // Encode arguments into byte array.
+        bytes memory data = abi.encodeWithSelector(
+            EXCHANGE.fillOrder.selector,
+            order,
+            takerAssetFillAmount,
+            orderSignature
+        );
+
+        // Call `fillOrder` via `executeTransaction`.
+        EXCHANGE.executeTransaction(
+            salt,
+            takerAddress,
+            data,
+            TX_ORIGIN_SIGNATURE
+        );
+    }
+
+    /// @dev Verifies signer is same as signer of current Ethereum transaction.
+    ///      NOTE: This function can currently be used to validate signatures coming from outside of this contract.
+    ///      Extra safety checks can be added for a production contract.
+    /// @param signer Address that should have signed the given hash.
+    /// @param signature Proof of signing.
+    /// @return Validity of order signature.
+    function isValidSignature(
+        bytes32 hash,
+        address signer,
+        bytes signature
+    )
+        external
+        view
+        returns (bool isValid)
+    {
+        return signer == tx.origin;
+    }
+}
+```
 
 # Signatures
 
-## API
+## Validating signatures
 
-The Exchange contract includes a method `isValidSignature` for validating signatures. This method has the following interface:
+The Exchange contract includes a public method `isValidSignature` for validating signatures. This method has the following interface:
 
 ```
 function isValidSignature(
@@ -507,7 +841,8 @@ function isValidSignature(
     address signer,
     bytes memory signature
 )
-    public view
+    public
+    view
     returns (bool isValid);
 ```
 
@@ -537,21 +872,26 @@ An Invalid signature always returns false. An invalid signature can always be re
 
 ### EIP712
 
-An EIP712 signature is considered valid if the address recovered from calling `ecrecover` is the same as the specified signer. In this case, `ecrecover` must be called with the following arguments:
+An EIP712 signature is considered valid if the address recovered from calling `ecrecover` with the given hash and decoded `v`, `r`, `s` values is the same as the specified signer. In this case, the signature is encoded in the following way:
 
-1.  `bytes32 hash`: Any 32 byte hash that adheres to the [EIP712 standard](https://github.com/ethereum/EIPs/pull/712/files).
-2.  `uint8 v`: signature[0].
-3.  `bytes32 r`: signature[1:32].
-4.  `bytes32 s`: signature[33:64].
+| Offset | Length | Contents |
+| ------ | ------ | -------- |
+| 0x00   | 1      | v        |
+| 0x01   | 32     | r        |
+| 0x21   | 32     | s        |
 
 ### EthSign
 
-An EthSign signature is considered valid if the address recovered from calling `ecrecover` is the same as the specified signer. In this case, `ecrecover` must be called with the following arguments:
+An EthSign signature is considered valid if the address recovered from calling `ecrecover` with the an EthSign-prefixed hash and decoded `v`, `r`, `s` values is the same as the specified signer.
 
-1.  `bytes32 msgHash`: Created by hashing a 32 hash with the `"\x19Ethereum Signed Message:\n32"` prefix.
-2.  `uint8 v`: signature[0].
-3.  `bytes32 r`: signature[1:32].
-4.  `bytes32 s`: signature[33:64].
+The prefixed `msgHash` is calculated with:
+
+```
+string constant ETH_PERSONAL_MESSAGE = "\x19Ethereum Signed Message:\n32";
+bytes32 msgHash = keccak256(abi.encodePacked(ETH_PERSONAL_MESSAGE, hash));
+```
+
+`v`, `r`, and `s` are encoded in the signature byte array using the same scheme as [EIP712 signatures](#EIP712).
 
 ### Caller
 
@@ -600,8 +940,10 @@ function approveSignatureValidator(
 
 A Validator signature is then encoded as:
 
-1.  `bytes signature`: signature[0:signature.length - 20 - 1]
-2.  `address validator`: signature[signature.length - 20:signature.length]
+| Offset   | Length | Contents                   |
+| -------- | ------ | -------------------------- |
+| 0x00     | x      | signature                  |
+| 0x00 + x | 20     | Validator contract address |
 
 A Validator contract must have the following interface:
 
@@ -671,18 +1013,24 @@ return isValid;
 
 ### Trezor
 
-This signature type allows for compatability with Trezor hardware wallets, which use a non-standard encoding when adding a prefix to the hash being signed. A Trezor signature is considered valid if the address recovered from calling `ecrecover` is the same as the specified signer. In this case, `ecrecover` must be called with the following arguments:
+This signature type allows for compatability with Trezor hardware wallets, which use a non-standard encoding when adding a prefix to the hash being signed. A Trezor signature is considered valid if the address recovered from calling `ecrecover` with the a Trezor-prefixed hash and decoded `v`, `r`, `s` values is the same as the specified signer.
 
-1.  `bytes32 msgHash`: Created by hashing a 32 byte hash with the `"\x19Ethereum Signed Message:\n\x41"` prefix.
-2.  `uint8 v`: signature[0].
-3.  `bytes32 r`: signature[1:32].
-4.  `bytes32 s`: signature[33:64].
+The prefixed `msgHash` is calculated with:
+
+```
+string constant TREZOR_PERSONAL_MESSAGE = "\x19Ethereum Signed Message:\n\x41";
+bytes32 msgHash = keccak256(abi.encodePacked(TREZOR_PERSONAL_MESSAGE, hash));
+```
+
+`v`, `r`, and `s` are encoded in the signature byte array using the same scheme as [EIP712 signatures](#EIP712).
 
 # Events
 
-## Fill
+## Exchange events
 
-A `Fill` event is emmitted when an order is filled.
+### Fill
+
+A `Fill` event is emitted when an order is filled.
 
 ```
 event Fill(
@@ -699,9 +1047,9 @@ event Fill(
 );
 ```
 
-## Cancel
+### Cancel
 
-A `Cancel` event is emmitted whenever an individual order is cancelled.
+A `Cancel` event is emitted whenever an individual order is cancelled.
 
 ```
 event Cancel(
@@ -713,14 +1061,85 @@ event Cancel(
 );
 ```
 
-## CancelUpTo
+### CancelUpTo
 
-A `CancelUpTo` event is emmitted whenever a `cancelOrdersUpTo` call is successful.
+A `CancelUpTo` event is emitted whenever a `cancelOrdersUpTo` call is successful.
 
 ```
 event CancelUpTo(
     address indexed makerAddress,
-    uint256 makerEpoch
+    address indexed senderAddress,
+    uint256 orderEpoch
+);
+```
+
+### AssetProxySet
+
+Whenever an `AssetProxy` is registered the `Exchange` contract, an `AssetProxySet` is emitted.
+
+```
+event AssetProxySet(
+    uint8 id,
+    address newAssetProxy,
+    address oldAssetProxy
+);
+```
+
+## AssetProxy events
+
+### AuthorizedAddressAdded
+
+An `AuthorizedAddressAdded` event is emitted when a new address becomes authorized to call an `AssetProxy` contract's transfer functions.
+
+```
+event AuthorizedAddressAdded(
+    address indexed target,
+    address indexed caller
+);
+```
+
+### AuthorizedAddressRemoved
+
+An `AuthorizedAddressRemoved` event is emitted when an address becomes unauthorized to call an `AssetProxy` contract's transfer functions.
+
+```
+event AuthorizedAddressRemoved(
+    address indexed target,
+    address indexed caller
+);
+```
+
+## AssetProxyOwner events
+
+The following events must precede the execution of any function called by `AssetProxyOwner` (with the exception of `removeAuthorizedAddress`).
+
+### Submission
+
+A `Submission` event is emitted when a new transaction is submitted to the `AssetProxyOwner`.
+
+```
+event Submission(uint256 indexed transactionId);
+```
+
+### Confirmation
+
+A `Confirmation` event is emitted when a transaction is confirmed by an individual owner of the `AssetProxyOwner`.
+
+```
+event Confirmation(
+    address indexed sender,
+    uint256 indexed transactionId
+);
+```
+
+### ConfirmationTimeSet
+
+A `ConfirmationTimeSet` event is emitted when a transaction has been fully confirmed. The 2 week timelock begins at this time, after which the transaction becomes executable.
+
+```
+event ConfirmationTimeSet(
+    uint256 indexed transactionId,
+    uint256 confirmationTime
 );
 ```
 
@@ -782,18 +1201,57 @@ struct OrderInfo {
 }
 ```
 
-# Contracts
+# Miscellaneous
 
-## Exchange
+## EIP712 usage
 
-## AssetProxy
+Hashes of orders and transactions are calculated according to the [EIP712 specification](https://github.com/ethereum/EIPs/pull/712/files).
 
-### ERC20Proxy
+The domain separator for the Exchange contract can be calculated with:
 
-### ERC721Proxy
+```
+string public constant EIP191_HEADER = "\x19\x01";
+bytes32 public constant EIP712_DOMAIN_SEPARATOR_NAME_HASH = keccak256("0x Protocol");
+bytes32 public constant EIP712_DOMAIN_SEPARATOR_VERSION_HASH = keccak256("2");
 
-## AssetProxyOwner
+bytes32 public constant EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH = keccak256(abi.encodePacked(
+    "DomainSeparator(",
+    "string name,",
+    "string version,",
+    "address contract",
+    ")"
+));
 
-# Recommendations
+bytes32 EIP712_DOMAIN_SEPARATOR = keccak256(abi.encodePacked(
+    EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH,
+    EIP712_DOMAIN_SEPARATOR_NAME_HASH,
+    EIP712_DOMAIN_SEPARATOR_VERSION_HASH,
+    bytes32(address(this))
+));
+```
+
+For more information about how this is used, see [hashing an order](#hashing-an-order) and [hashing a transaction](#hashing-a-transaction).
 
 ## Optimizing calldata
+
+Calldata is expensive. As per Appendix G of the [Ethereum Yellowpaper](#https://ethereum.github.io/yellowpaper/paper.pdf), every non-zero byte of calldata costs 68 gas, and every zero byte costs 4 gas. There are certain off-chain optimizations that can be made in order to maximize the amount of zeroes included in calldata.
+
+### Filling remaining amounts
+
+When an order is filled, it will attempt to fill the minimum of the amount submitted and the amount remaining. Therefore, if a user attempts to fill a very large amount such as `0xF000000000000000000000000000000000000000000000000000000000000000`, then the order will almost always be maximally filled while using minimal extra calldata.
+
+### Filling orders that have already been partially filled
+
+When filling an order, the signature is only validated the first time the order is filled. Because of this, signatures should _not_ be resubmitted after an order has already been partially filled. For a standard 65 byte ECDSA signature, this can save well over 4000 gas.
+
+### Optimizing salt
+
+When creating an order, a full 32 byte salt is generally unecessary to facilitate randomness. Using a salt value with as many leading zeroes as possible will increase gas efficiency. It is receomended to use a timestamp or incrementing nonce for the salt value, which will generally be small enough to optimize gas while also working well with [cancelOrdersUpTo](#cancelordersupto).
+
+### Assuming order parameters
+
+The [matchOrders](#matchorders), [marketSellOrders](#marketsellorders), [marketSellOrdersNoThrow](#marketsellordersnothrow), [marketBuyOrders](#marketbuyorders), and [marketBuyOrdersNoThrow](#marketbuyordersnothrow) functions all require that certain parameters of the later passed in orders match the same parameters of the first passed in order. Rather than checking equality, these functions all assume that the parameters are equal. This means users may pass in zero values for those parameters and the functions will still execute as if the values had been passed in as calldata.
+
+### Vanity addresses
+
+If frequently trading from a single address, it may make sense to generate a vanity address with as many zero bytes as possible.
