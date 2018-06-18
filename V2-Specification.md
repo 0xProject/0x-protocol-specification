@@ -36,23 +36,23 @@
 
 The Exchange contract contains the bulk of the business logic within 0x protocol. It the entry point for:
 
-1.  Filling orders
-2.  Cancelling orders
+1.  Filling [orders](#orders)
+2.  Cancelling [orders](#orders)
 3.  Executing [transactions](#transactions)
-4.  Validating signatures
-5.  Registering new [AssetProxy](#assetproxy) contracts into the system
+4.  Validating [signatures](#signatures)
+5.  Registering new [`AssetProxy`](#assetproxy) contracts into the system
 
 ## AssetProxy
 
-The `AssetProxy` contracts are responsible for:
+The [`AssetProxy`](#assetproxy) contracts are responsible for:
 
 1.  Decoding asset specific metadata contained within an order
 2.  Performing the actual asset transfer
-3.  Authorizing/unauthorizing Exchange contract addresses from calling the transfer methods on this `AssetProxy`
+3.  Authorizing/unauthorizing Exchange contract addresses from calling the transfer methods on this [`AssetProxy`](#assetproxy)
 
-In order to opt-in to using 0x protocol, users must approve an asset's associated `AssetProxy` to transfer the asset on their behalf. All `AssetProxy` contracts are currently identified by a unique value represented as an 8-bit unsigned integer. This type was chosen for efficiency reasons, but may be extended in the future.
+In order to opt-in to using 0x protocol, users must approve an asset's associated [`AssetProxy`](#assetproxy) to transfer the asset on their behalf. All [`AssetProxy`](#assetproxy) contracts are currently identified by a unique value represented as an 8-bit unsigned integer. This type was chosen for efficiency reasons, but may be extended in the future.
 
-All `AssetProxy` contracts have the following minimum interface:
+All [`AssetProxy`](#assetproxy) contracts have the following minimum interface:
 
 ```
 contract IAssetProxy {
@@ -92,7 +92,7 @@ contract IAssetProxy {
 }
 ```
 
-Currently, the protocol includes `AssetProxy` contracts for ERC20 and ERC721 tokens.
+Currently, the protocol includes [`AssetProxy`](#assetproxy) contracts for ERC20 and ERC721 tokens.
 
 ### ERC20Proxy
 
@@ -119,13 +119,13 @@ This contract expects [`assetData`](#assetdata) to be encoded in the following w
 
 ### Adding new AssetProxy contracts
 
-New `AssetProxy` contracts may be added into the system by calling `registerAssetProxy` on the `Exchange` contract.
+New [`AssetProxy`](#assetproxy) contracts may be added into the system by calling `registerAssetProxy` on the [`Exchange`](#exchange) contract.
 
 TODO: Determine Exchange owner
 
 ## AssetProxyOwner
 
-The AssetProxyOwner contract is indirectly responsible for updating the `Exchange` contracts that are allowed to call the transfer methods on each `AssetProxy` contract. It is the only address that is allowed to call `addAuthorizedAddress` and `removeAuthorizedAddress` on each `AssetProxy`. Any transaction created by the `AssetProxyOwner` must be proposed, confirmed, and then may be executed after a 2 week timelock. The only exception to this is that `removeAuthorizedAddress` may be executed immediately, in case of a security related bugs. The `AssetProxyOwner` may also call `transferOwnership`, allowing it to swap itself out with an upgraded contract.
+The AssetProxyOwner contract is indirectly responsible for updating the [`Exchange`](#exchange) contracts that are allowed to call the transfer methods on each [`AssetProxy`](#assetproxy) contract. It is the only address that is allowed to call `addAuthorizedAddress` and `removeAuthorizedAddress` on each [`AssetProxy`](#assetproxy). Any transaction created by the `AssetProxyOwner` must be proposed, confirmed, and then may be executed after a 2 week timelock. The only exception to this is that `removeAuthorizedAddress` may be executed immediately, in case of a security related bugs. The `AssetProxyOwner` may also call `transferOwnership`, allowing it to swap itself out with an upgraded contract.
 
 # Orders
 
@@ -150,18 +150,18 @@ An order message consists of the following parameters:
 
 ### SenderAddress
 
-If the `senderAddress` of an order is not set to 0, only that address may call `Exchange` contract methods that affect that order. See the [filter contracts examples](#filter-contracts) for more information.
+If the `senderAddress` of an order is not set to 0, only that address may call [`Exchange`](#exchange) contract methods that affect that order. See the [filter contracts examples](#filter-contracts) for more information.
 
 ### Salt
 
 An order's `salt` parameter has two main usecases:
 
 -   To ensure uniqueness within an order's hash.
--   To be used in combination with [`cancelOrdersUpTo`](#cancelordersupto). To get the most benefit of this usecase, it is recommended that the `salt` field be treated as a timestamp for when orders have been created. A timestamp in milliseconds would allow a `maker` to create 1000 orders with the same parameters per second.
+-   To be used in combination with [`cancelOrdersUpTo`](#cancelordersupto). To get the most benefit of this usecase, it is recommended that the `salt` field be treated as a timestamp for when orders have been created. A timestamp in milliseconds would allow a maker to create 1000 orders with the same parameters per second.
 
 ### AssetData
 
-The `makerAssetData` and `takerAssetData` fileds of an order contain information specific to that asset. The last byte of this data must reference the id of an `AssetProxy` contract that is intended to decode the remaining data. The last byte is popped off of the `assetData` byte arrays before being dispatched to the corresponding `AssetProxy`.
+The `makerAssetData` and `takerAssetData` fileds of an order contain information specific to that asset. The last byte of this data must reference the id of an [`AssetProxy`](#assetproxy) contract that is intended to decode the remaining data. The last byte is popped off of the assetData byte arrays before being dispatched to the corresponding [`AssetProxy`](#assetproxy).
 
 ## Hashing an order
 
@@ -252,7 +252,7 @@ function fillOrder(
 
 ### fillOrKillOrder
 
-`fillOrKillOrder` behaves almost exactly the same as `fillOrder`. However, the transaction will revert if the amount specified is not filled exactly.
+`fillOrKillOrder` behaves almost exactly the same as [`fillOrder`](#fillorder). However, the transaction will revert if the amount specified is not filled exactly.
 
 ```
 /// @dev Fills the input order. Reverts if exact takerAssetFillAmount not filled.
@@ -270,7 +270,7 @@ function fillOrKillOrder(
 
 ### fillOrderNoThrow
 
-`fillOrderNoThrow` also behaves very similary to `fillOrder`. However, the transaction will never revert and will instead return a [`FillResults`](#fillresults) instance that contains all 0 values. This is useful when calling the batch methods listed below, where a user may not want an entire transaction to fail when a single fill is reverted.
+`fillOrderNoThrow` also behaves very similary to [`fillOrder`](#fillorder). However, the transaction will never revert and will instead return a [`FillResults`](#fillresults) instance that contains all 0 values. This is useful when calling the batch methods listed below, where a user may not want an entire transaction to fail when a single fill is reverted.
 
 ```
 /// @dev Fills an order with specified parameters and ECDSA signature.
@@ -290,7 +290,7 @@ function fillOrderNoThrow(
 
 ### batchFillOrders
 
-`batchFillOrders` calls `fillOrder` sequentially for each provided order, amount, and signature.
+`batchFillOrders` calls [`fillOrder`](#fillorder) sequentially for each provided order, amount, and signature.
 
 ```
 /// @dev Synchronously executes multiple calls of fillOrder.
@@ -310,7 +310,7 @@ function batchFillOrders(
 
 ### batchFillOrKillOrders
 
-`batchFillOrKillOrders` calls `fillOrKillOrder` sequentially for each provided order, amount, and signature.
+`batchFillOrKillOrders` calls [`fillOrKillOrder`](#fillorkillorder) sequentially for each provided order, amount, and signature.
 
 ```
 /// @dev Synchronously executes multiple calls of fillOrKill.
@@ -330,7 +330,7 @@ function batchFillOrKillOrders(
 
 ### batchFillOrdersNoThrow
 
-`batchFillOrdersNoThrow` calls `fillOrderNoThrow` sequentially for each provided order, amount, and signature.
+`batchFillOrdersNoThrow` calls [`fillOrderNoThrow`](#fillordernothrow) sequentially for each provided order, amount, and signature.
 
 ```
 /// @dev Synchronously executes multiple calles of fillOrderNoThrow.
@@ -350,7 +350,7 @@ function batchFillOrdersNoThrow(
 
 ### marketSellOrders
 
-`marketSellOrders` calls `fillOrder` sequentially for each provided order and signature until the total `takerAssetAmount` has been sold by `taker`. If successful, `marketSellOrders` returns a [`FillResults`]() instance containing the cumulative amounts filled and fees paid.
+`marketSellOrders` calls [`fillOrder`](#fillorder) sequentially for each provided order and signature until the total `takerAssetAmount` has been sold by the taker. If successful, `marketSellOrders` returns a [`FillResults`](#fillresults) instance containing the cumulative amounts filled and fees paid.
 
 Note that `marketSellOrders` assumes that the `takerAssetData` is equal for each order. For any order passed in after the first, the `takerAssetData` byte array will be ignored (allowing null byte arrays to be passed in). If an order was intended to use a different `takerAssetData` field, the fill will fail at signature validation.
 
@@ -371,7 +371,7 @@ function marketSellOrders(
 
 ### marketSellOrdersNoThrow
 
-`marketSellOrdersNoThrow` calls `fillOrderNoThrow` sequentially for each provided order and signature until the total `takerAssetAmount` has been sold by `taker`. If successful, `marketSellOrdersNoThrow` returns a [`FillResults`](#fillresults) instance containing the cumulative amounts filled and fees paid.
+`marketSellOrdersNoThrow` calls [`fillOrderNoThrow`](#fillordernothrow) sequentially for each provided order and signature until the total `takerAssetAmount` has been sold by the taker. If successful, `marketSellOrdersNoThrow` returns a [`FillResults`](#fillresults) instance containing the cumulative amounts filled and fees paid.
 
 Note that `marketSellOrdersNoThrow` assumes that the `takerAssetData` is equal for each order. For any order passed in after the first, the `takerAssetData` byte array will be ignored (allowing null byte arrays to be passed in). If an order was intended to use a different `takerAssetData` field, the fill will fail at signature validation.
 
@@ -393,7 +393,7 @@ function marketSellOrdersNoThrow(
 
 ### marketBuyOrders
 
-`marketBuyOrders` calls `fillOrder` sequentially for each provided order and signature until the total `makerAssetAmount` has been bought by `taker`. If successful, `marketBuyOrders` returns a [`FillResults`]() instance containing the cumulative amounts filled and fees paid.
+`marketBuyOrders` calls [`fillOrder`](#fillorder) sequentially for each provided order and signature until the total `makerAssetAmount` has been bought by the taker. If successful, `marketBuyOrders` returns a [`FillResults`](#fillresults) instance containing the cumulative amounts filled and fees paid.
 
 Note that `marketBuyOrders` assumes that the `makerAssetData` is equal for each order. For any order passed in after the first, the `makerAssetData` byte array will be ignored (allowing null byte arrays to be passed in). If an order was intended to use a different `makerAssetData` field, the fill will fail at signature validation.
 
@@ -414,7 +414,7 @@ function marketBuyOrders(
 
 ### marketBuyOrdersNoThrow
 
-`marketBuyOrdersNoThrow` calls `fillOrderNoThrow` sequentially for each provided order and signature until the total `makerAssetAmount` has been bought by `taker`. If successful, `marketBuyOrdersNoThrow` returns a [`FillResults`](#fillresults) instance containing the cumulative amounts filled and fees paid.
+`marketBuyOrdersNoThrow` calls [`fillOrderNoThrow`](#fillordernothrow) sequentially for each provided order and signature until the total `makerAssetAmount` has been bought by `taker`. If successful, `marketBuyOrdersNoThrow` returns a [`FillResults`](#fillresults) instance containing the cumulative amounts filled and fees paid.
 
 ```
 /// @dev Synchronously executes multiple fill orders in a single transaction until total amount is bought by taker.
@@ -440,9 +440,9 @@ Two orders that represent a bid and an ask for the same token pair may be matche
 (leftOrder.makerAssetAmount * rightOrder.makerAssetAmount) >= (leftOrder.takerAssetAmount * rightOrder.takerAssetAmount)
 ```
 
-The caller of `matchOrders` is considered the `taker` for each order. The `taker` will pay the `takerFee` for each order, but will also recieve the spread between both orders. The spread is always denominated in terms of the left order's `makerAsset`. No balance is required in order to call `matchOrders`, and the `taker` never holds intermediate balances of either asset.
+The caller of `matchOrders` is considered the taker for each order. The taker will pay the `takerFee` for each order, but will also recieve the spread between both orders. The spread is always denominated in terms of the left order's makerAsset. No balance is required in order to call `matchOrders`, and the taker never holds intermediate balances of either asset.
 
-`matchOrders` will revert if either order fails the validation checks for [fillOrder](#fillOrder). Note that `matchOrders` assumes that `rightOrder.makerAssetData == leftOrder.takerAssetData` and `rightOrder.takerAssetData == leftOrder.makerAssetData`, allowing null byte arrays to be passed in for both `assetData` fields of `rightOrder`. If other `assetData` fields were part of the original `rightOrder`, this function will fail when validating the signature of the `rightOrder`.
+`matchOrders` will revert if either order fails the validation checks for [fillOrder](#fillOrder). Note that `matchOrders` assumes that `rightOrder.makerAssetData == leftOrder.takerAssetData` and `rightOrder.takerAssetData == leftOrder.makerAssetData`, allowing null byte arrays to be passed in for both assetData fields of `rightOrder`. If other assetData fields were part of the original `rightOrder`, this function will fail when validating the signature of the `rightOrder`.
 
 If successful, `matchOrders` will emit a [Fill](#fill) event for each matched order.
 
@@ -475,8 +475,8 @@ function matchOrders(
 `cancelOrder` will revert under the following conditions:
 
 -   The `makerAssetAmount` or `takerAssetAmount` specified in the order are equal to 0.
--   The caller of `cancelOrder` is different from the `sender` specified in the order (unless `sender == address(0)`).
--   The `maker` of the order has not authorized the cancel, either by calling `cancelOrder` through an Ethereum transaction or a [0x transaction](#transactions).
+-   The caller of `cancelOrder` is different from the `senderAddress` specified in the order (unless `senderAddress == address(0)`).
+-   The maker of the order has not authorized the cancel, either by calling `cancelOrder` through an Ethereum transaction or a [0x transaction](#transactions).
 -   The order has expired.
 -   The order has already been cancelled.
 
@@ -493,7 +493,7 @@ function cancelOrder(Order memory order)
 
 ### cancelOrdersUpTo
 
-`cancelOrdersUpTo` invalidates all orders created by the maker that have 1) a `salt` value that is less than or equal to the specified `targetOrderEpoch` and 2) that have a `senderAddress` value equal to the caller (or null address if the caller is the maker). `cancelOrdersUpTo` also updates the current `orderEpoch`. This function will revert if `targetOrderEpoch` is less than or equal to the current `orderEpoch`. If successful, `cancelOrdersUpTo` will emit a [`CancelUpTo`](#cancelupto) event.
+`cancelOrdersUpTo` invalidates all orders created by the maker that have 1) a `salt` value that is less than or equal to the specified `targetOrderEpoch` and 2) that have a [`senderAddress`](#senderaddress) value equal to the caller (or null address if the caller is the maker). `cancelOrdersUpTo` also updates the current `orderEpoch`. This function will revert if `targetOrderEpoch` is less than or equal to the current `orderEpoch`. If successful, `cancelOrdersUpTo` will emit a [`CancelUpTo`](#cancelupto) event.
 
 ```
 /// @dev Cancels all orders created by makerAddress with a salt less than or equal to the targetOrderEpoch
@@ -536,7 +536,7 @@ mapping (bytes32 => bool) public cancelled;
 
 ### orderEpoch
 
-The Exchange contract contains a mapping that specifies the `orderEpoch` for a given `makerAddress`/`senderAddress` pair, which invalidates all orders containing that pair that contain a salt value less than or equal to the current `orderEpoch`.
+The Exchange contract contains a mapping that specifies the `orderEpoch` for a given `makerAddress`/[`senderAddress`](#senderaddress) pair, which invalidates all orders containing that pair that contain a salt value less than or equal to the current `orderEpoch`.
 
 ```
 // Mapping of makerAddress => senderAddress => lowest salt an order can have in order to be fillable
@@ -561,7 +561,7 @@ function getOrderInfo(Order memory order)
 
 # Transactions
 
-Transaction messages exist for the purpose of calling methods on the `Exchange` contract in the context of another address (see [ZEIP18](https://github.com/0xProject/ZEIPs/issues/18)). This is especially useful for implementing [filter contracts](#filter-contracts).
+Transaction messages exist for the purpose of calling methods on the [`Exchange`](#exchange) contract in the context of another address (see [ZEIP18](https://github.com/0xProject/ZEIPs/issues/18)). This is especially useful for implementing [filter contracts](#filter-contracts).
 
 ## Transaction message format
 
@@ -628,13 +628,13 @@ function executeTransaction(
 
 ## Filter contracts
 
-A filter contract is intended to add or remove logic to how orders are executed. An order may be tied to a specific filter contract by setting its `senderAddress` to the address of the desired filter contract.
+A filter contract is intended to add or remove logic to how orders are executed. An order may be tied to a specific filter contract by setting its [`senderAddress`](#senderaddress) to the address of the desired filter contract.
 
 Here are some simple examples that demonstrate how filter contracts may be used:
 
 ### ExchangeWrapper
 
-This contract does not add any additional logic to how orders are filled or cancelled. It is primarily intended to show the flow of data from a filter contract to the `Exchange` contract. It is important to note that orders that specify this contract as the `senderAddress` would _only_ be able to use the methods defined in this filter contract. Those orders could not be filled or cancelled with any other `Exchange` methods.
+This contract does not add any additional logic to how orders are filled or cancelled. It is primarily intended to show the flow of data from a filter contract to the [`Exchange`](#exchange) contract. It is important to note that orders that specify this contract as the [`senderAddress`](#senderaddress) would _only_ be able to use the methods defined in this filter contract. Those orders could not be filled or cancelled with any other [`Exchange`](#exchange) methods.
 
 ```
 contract ExchangeWrapper {
@@ -714,7 +714,7 @@ contract ExchangeWrapper {
 
 ### Whitelist
 
-This contract is a bit more complex than the last. Orders that specify this contract as the `senderAddress` could only be filled if both the maker and taker of the order are on a whitelist created by the filter contract owner.
+This contract is a bit more complex than the last. Orders that specify this contract as the [`senderAddress`](#senderaddress) could only be filled if both the maker and taker of the order are on a whitelist created by the filter contract owner.
 
 This contract also makes use of the [`Validator`](#validator) signature type. Rather than requiring the taker to sign a 0x transaction _and_ an Ethereum transaction to call this contract, this contract makes use of `tx.origin` to only require a signed Ethereum transaction (this may have dangerous consequences without extra measures and is only intended to be an example).
 
@@ -758,7 +758,7 @@ contract Whitelist is
 
     /// @dev Fills an order using `msg.sender` as the taker.
     ///      The transaction will revert if both the maker and taker are not whitelisted.
-    ///      Orders should specify this contract as the `senderAddress` in order to gaurantee
+    ///      Orders should specify this contract as the senderAddress in order to gaurantee
     ///      that both maker and taker have been whitelisted.
     /// @param order Order struct containing order specifications.
     /// @param takerAssetFillAmount Desired amount of takerAsset to sell.
@@ -1063,7 +1063,7 @@ event Cancel(
 
 ### CancelUpTo
 
-A `CancelUpTo` event is emitted whenever a `cancelOrdersUpTo` call is successful.
+A `CancelUpTo` event is emitted whenever a [`cancelOrdersUpTo`](#cancelordersupto) call is successful.
 
 ```
 event CancelUpTo(
@@ -1075,7 +1075,7 @@ event CancelUpTo(
 
 ### AssetProxySet
 
-Whenever an `AssetProxy` is registered the `Exchange` contract, an `AssetProxySet` is emitted.
+Whenever an [`AssetProxy`](#assetproxy) is registered the [`Exchange`](#exchange) contract, an `AssetProxySet` is emitted.
 
 ```
 event AssetProxySet(
@@ -1089,7 +1089,7 @@ event AssetProxySet(
 
 ### AuthorizedAddressAdded
 
-An `AuthorizedAddressAdded` event is emitted when a new address becomes authorized to call an `AssetProxy` contract's transfer functions.
+An `AuthorizedAddressAdded` event is emitted when a new address becomes authorized to call an [`AssetProxy`](#assetproxy) contract's transfer functions.
 
 ```
 event AuthorizedAddressAdded(
@@ -1100,7 +1100,7 @@ event AuthorizedAddressAdded(
 
 ### AuthorizedAddressRemoved
 
-An `AuthorizedAddressRemoved` event is emitted when an address becomes unauthorized to call an `AssetProxy` contract's transfer functions.
+An `AuthorizedAddressRemoved` event is emitted when an address becomes unauthorized to call an [`AssetProxy`](#assetproxy) contract's transfer functions.
 
 ```
 event AuthorizedAddressRemoved(
@@ -1111,11 +1111,11 @@ event AuthorizedAddressRemoved(
 
 ## AssetProxyOwner events
 
-The following events must precede the execution of any function called by `AssetProxyOwner` (with the exception of `removeAuthorizedAddress`).
+The following events must precede the execution of any function called by [`AssetProxyOwner`](#assetproxyowner) (with the exception of `removeAuthorizedAddress`).
 
 ### Submission
 
-A `Submission` event is emitted when a new transaction is submitted to the `AssetProxyOwner`.
+A `Submission` event is emitted when a new transaction is submitted to the [`AssetProxyOwner`](#assetproxyowner).
 
 ```
 event Submission(uint256 indexed transactionId);
@@ -1123,7 +1123,7 @@ event Submission(uint256 indexed transactionId);
 
 ### Confirmation
 
-A `Confirmation` event is emitted when a transaction is confirmed by an individual owner of the `AssetProxyOwner`.
+A `Confirmation` event is emitted when a transaction is confirmed by an individual owner of the [`AssetProxyOwner`](#assetproxyowner).
 
 ```
 event Confirmation(
@@ -1179,7 +1179,7 @@ struct FillResults {
 
 ## MatchedFillResults
 
-The `matchOrders` method returns a MatchedFillResults instance if successful.
+The [`matchOrders`](#matchorders) method returns a MatchedFillResults instance if successful.
 
 ```
 struct MatchedFillResults {
@@ -1191,7 +1191,7 @@ struct MatchedFillResults {
 
 ## OrderInfo
 
-The `getOrderInfo` method returns an `OrderInfo` instance.
+The [`getOrderInfo`](#getorderinfo) method returns an `OrderInfo` instance.
 
 ```
 struct OrderInfo {
@@ -1246,11 +1246,11 @@ When filling an order, the signature is only validated the first time the order 
 
 ### Optimizing salt
 
-When creating an order, a full 32 byte salt is generally unecessary to facilitate randomness. Using a salt value with as many leading zeroes as possible will increase gas efficiency. It is receomended to use a timestamp or incrementing nonce for the salt value, which will generally be small enough to optimize gas while also working well with [cancelOrdersUpTo](#cancelordersupto).
+When creating an order, a full 32 byte salt is generally unecessary to facilitate randomness. Using a salt value with as many leading zeroes as possible will increase gas efficiency. It is recommended to use a timestamp or incrementing nonce for the salt value, which will generally be small enough to optimize gas while also working well with [`cancelOrdersUpTo`](#cancelordersupto).
 
 ### Assuming order parameters
 
-The [matchOrders](#matchorders), [marketSellOrders](#marketsellorders), [marketSellOrdersNoThrow](#marketsellordersnothrow), [marketBuyOrders](#marketbuyorders), and [marketBuyOrdersNoThrow](#marketbuyordersnothrow) functions all require that certain parameters of the later passed in orders match the same parameters of the first passed in order. Rather than checking equality, these functions all assume that the parameters are equal. This means users may pass in zero values for those parameters and the functions will still execute as if the values had been passed in as calldata.
+The [`matchOrders`](#matchorders), [`marketSellOrders`](#marketsellorders), [`marketSellOrdersNoThrow`](#marketsellordersnothrow), [`marketBuyOrders`](#marketbuyorders), and [`marketBuyOrdersNoThrow`](#marketbuyordersnothrow) functions all require that certain parameters of the later passed in orders match the same parameters of the first passed in order. Rather than checking equality, these functions all assume that the parameters are equal. This means users may pass in zero values for those parameters and the functions will still execute as if the values had been passed in as calldata.
 
 ### Vanity addresses
 
