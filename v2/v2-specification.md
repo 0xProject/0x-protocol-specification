@@ -11,7 +11,7 @@
     1.  [Cancelling orders](#cancelling-orders)
     1.  [Querying state of an order](#querying-state-of-an-order)
 1.  [Transactions](#transactions)
-    1.  [Messsage format](#transaction-message-format)
+    1.  [Message format](#transaction-message-format)
     1.  [Hash of a transaction](#hash-of-a-transaction)
     1.  [Creating a transaction](#creating-a-transaction)
     1.  [Executing a transaction](#executing-a-transaction)
