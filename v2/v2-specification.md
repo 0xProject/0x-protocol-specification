@@ -4,6 +4,7 @@
     1.  [AssetProxy](#assetproxy)
     1.  [AssetProxyOwner](#assetproxyowner)
 1.  [Contract Interactions](#interactions)
+    1.  [Trade settlement](#trade-settlement)
 1.  [Orders](#orders)
     1.  [Message format](#order-message-format)
     1.  [Hashing an order](#hashing-an-order)
@@ -169,9 +170,9 @@ The AssetProxyOwner contract is indirectly responsible for updating the [`Exchan
 
 # Contract Interactions
 
-The diagrams provided below demonstrate the interactions that occur between the various 0x smart contracts. The arrow tracks execution context within the EVM as a transaction is processed. Execution context is passed from the originating Ethereum account (circle) and between a pipeline of Ethereum smart contracts (rectangles) as they make external function calls on each other. Arrows are directed from the caller to the callee.
+The diagrams provided below demonstrate the interactions that occur between the various 0x smart contracts. The arrow tracks execution context within the EVM as a transaction is processed. Execution context is passed from the originating Ethereum account (circle) and between 0x's Ethereum smart contracts (rectangles) as they make external function calls into each other. Arrows are directed from the caller to the callee.
 
-## Trade Settlement
+## Trade settlement
 
 ### ERC20 <> ERC20
 
