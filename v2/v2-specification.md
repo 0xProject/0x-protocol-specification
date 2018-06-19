@@ -184,11 +184,11 @@ Transaction #1
 
 1. `Exchange.fillOrder(order, value)`
 2. `ERC20Proxy.transferFrom(assetData, from, to, value)`
-3. `ERC20Token(token).transferFrom(from, to, value)`
+3. `ERC20Token(assetData.address).transferFrom(from, to, value)`
 4. ERC20Token: (bool response)
 5. ERC20Proxy: (bool response)
 6. `ERC20Proxy.transferFrom(assetData, from, to, value)`
-7. `ERC20Token(token).transferFrom(from, to, value)`
+7. `ERC20Token(assetData.address).transferFrom(from, to, value)`
 8. ERC20Token: (bool response)
 9. ERC20Proxy: (bool response)
 10. Exchange: (bool response)
@@ -203,11 +203,11 @@ Transaction #1
 
 1. `Exchange.fillOrder(order, value)`
 2. `ERC721Proxy.transferFrom(assetData, from, to, value)`
-3. `ERC721Token(token).transferFrom(from, to, assetData.tokenId)`
+3. `ERC721Token(assetData.address).transferFrom(from, to, assetData.tokenId)`
 4. ERC721Token: (bool response)
 5. ERC721Proxy: (bool response)
 6. `ERC20Proxy.transferFrom(assetData, from, to, value)`
-7. `ERC20Token(token).transferFrom(from, to, value)`
+7. `ERC20Token(assetData.address).transferFrom(from, to, value)`
 8. ERC20Token: (bool response)
 9. ERC20Proxy: (bool response)
 10. Exchange: (bool response)
