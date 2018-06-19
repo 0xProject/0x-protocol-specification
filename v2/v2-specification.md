@@ -169,6 +169,48 @@ The AssetProxyOwner contract is indirectly responsible for updating the [`Exchan
 
 # Contract Interactions
 
+The diagrams provided below demonstrate the interactions that occur between the various 0x smart contracts. The arrow tracks execution context within the EVM as a transaction is processed. Execution context is passed from the originating Ethereum account (circle) and between a pipeline of Ethereum smart contracts (rectangles) as they make external function calls on each other. Arrows are directed from the caller to the callee.
+
+## Trade Settlement
+
+### ERC20 <> ERC20
+
+<div style="text-align: center;">
+<img src="./0x_v2_trade_erc20_erc20.png" style="padding-bottom: 20px; padding-top: 20px;" width="80%" />
+</div>
+
+Transaction #1
+
+1. `Exchange.fillOrder(order, value)`
+2. `ERC20Proxy.transferFrom(assetData, from, to, value)`
+3. `ERC20Token(token).transferFrom(from, to, value)`
+4. ERC20Token: (bool response)
+5. ERC20Proxy: (bool response)
+6. `ERC20Proxy.transferFrom(assetData, from, to, value)`
+7. `ERC20Token(token).transferFrom(from, to, value)`
+8. ERC20Token: (bool response)
+9. ERC20Proxy: (bool response)
+10. Exchange: (bool response)
+
+### ERC20 <> ERC721
+
+<div style="text-align: center;">
+<img src="./0x_v2_trade_erc20_erc721.png" style="padding-bottom: 20px; padding-top: 20px;" width="80%" />
+</div>
+
+Transaction #1
+
+1. `Exchange.fillOrder(order, value)`
+2. `ERC721Proxy.transferFrom(assetData, from, to, value)`
+3. `ERC721Token(token).transferFrom(from, to, assetData.tokenId)`
+4. ERC721Token: (bool response)
+5. ERC721Proxy: (bool response)
+6. `ERC20Proxy.transferFrom(assetData, from, to, value)`
+7. `ERC20Token(token).transferFrom(from, to, value)`
+8. ERC20Token: (bool response)
+9. ERC20Proxy: (bool response)
+10. Exchange: (bool response)
+
 # Orders
 
 ## Order message format
