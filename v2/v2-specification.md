@@ -3,8 +3,11 @@
     1.  [Exchange](#exchange)
     1.  [AssetProxy](#assetproxy)
     1.  [AssetProxyOwner](#assetproxyowner)
-1.  [Contract Interactions](#interactions)
+1.  [Contract Interactions](#contract-interactions)
     1.  [Trade settlement](#trade-settlement)
+    1.  [Upgrading the Exchange contract](#upgrading-the-exchange-contract)
+    1.  [Upgrading the AssetProxyOwner contract](#upgrading-the-assetproxyowner-contract)
+    1.  [Adding new AssetProxy contracts](#adding-new-assetproxy-contracts)
 1.  [Orders](#orders)
     1.  [Message format](#order-message-format)
     1.  [Hashing an order](#hashing-an-order)
@@ -158,21 +161,17 @@ This contract expects [`assetData`](#assetdata) to be encoded in the following w
 
 The `ERC721Proxy` performs the transfer by calling the token's `safeTransferFrom` method. The transaction will be reverted if the owner has insufficient balance or if the `ERC721Proxy` is not approved to perform the transfer.
 
-### Adding new AssetProxy contracts
-
-New [`AssetProxy`](#assetproxy) contracts may be added into the system by calling `registerAssetProxy` on the [`Exchange`](#exchange) contract.
-
-TODO: Determine Exchange owner
-
 ## AssetProxyOwner
 
 The AssetProxyOwner contract is indirectly responsible for updating the [`Exchange`](#exchange) contracts that are allowed to call the transfer methods on each [`AssetProxy`](#assetproxy) contract. It is the only address that is allowed to call `addAuthorizedAddress` and `removeAuthorizedAddress` on each [`AssetProxy`](#assetproxy). Any transaction created by the `AssetProxyOwner` must be proposed, confirmed, and then may be executed after a 2 week timelock. The only exception to this is that `removeAuthorizedAddress` may be executed immediately, in case of security related bugs. The `AssetProxyOwner` may also call `transferOwnership`, allowing it to swap itself out with an upgraded contract.
 
 # Contract Interactions
 
-The diagrams provided below demonstrate the interactions that occur between the various 0x smart contracts. The arrow tracks execution context within the EVM as a transaction is processed. Execution context is passed from the originating Ethereum account (circle) and between 0x's Ethereum smart contracts (rectangles) as they make external function calls into each other. Arrows are directed from the caller to the callee.
+The diagrams provided below demonstrate interactions between various 0x smart contracts that make up the system. The arrow represents execution context within the EVM as a transaction is processed. Execution context is passed from the originating Ethereum account (circle) and between 0x's Ethereum smart contracts (rectangles) as they make external function calls into each other. Arrows are directed from the caller to the callee. Pseudocode is provided alongside each diagram to demonstrate what is happening at each step in the sequence of external function calls that occur during a given transaction.
 
 ## Trade settlement
+
+A trade is initiated when an [Order](#orders) is passed into the [`Exchange`](#exchange) contract. If the [Order](#orders) is valid, the [`Exchange`](#exchange) contract will attempt to settle each leg of the trade by calling into the appropriate [`AssetProxy`](#assetproxy) contract for each asset being exchanged. Each [`AssetProxy`](#assetproxy) accepts and processes a payload of asset metadata and initiates a transfer. To simplify the trade settlement diagrams below, we assume that the orders being settled have zero fees.
 
 ### ERC20 <> ERC20
 
@@ -211,6 +210,20 @@ Transaction #1
 8. ERC20Token: (bool response)
 9. ERC20Proxy: (bool response)
 10. Exchange: (bool response)
+
+## Upgrading the Exchange contract
+
+TODO.
+
+## Upgrading the AssetProxyOwner contract
+
+TODO.
+
+### Adding new AssetProxy contracts
+
+New [`AssetProxy`](#assetproxy) contracts may be added into the system by calling `registerAssetProxy` on the [`Exchange`](#exchange) contract.
+
+TODO: Determine Exchange owner
 
 # Orders
 
