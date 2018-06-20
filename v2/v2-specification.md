@@ -3,14 +3,11 @@
     1.  [Exchange](#exchange)
     1.  [AssetProxy](#assetproxy)
     1.  [AssetProxyOwner](#assetproxyowner)
-<<<<<<< HEAD
 1.  [Contract Interactions](#contract-interactions)
     1.  [Trade settlement](#trade-settlement)
     1.  [Upgrading the Exchange contract](#upgrading-the-exchange-contract)
     1.  [Upgrading the AssetProxyOwner contract](#upgrading-the-assetproxyowner-contract)
     1.  [Adding new AssetProxy contracts](#adding-new-assetproxy-contracts)
-=======
->>>>>>> master
 1.  [Orders](#orders)
     1.  [Message format](#order-message-format)
     1.  [Hashing an order](#hashing-an-order)
@@ -38,13 +35,10 @@
 
 # Architecture
 
-<<<<<<< HEAD
 0x protocol uses an approach we refer to as **off-chain order relay with on-chain settlement**. In this approach, cryptographically signed [Orders](#orders) are broadcast off of the blockchain through any arbitrary communication channel; an interested counterparty may inject one or more of these [Orders](#orders) into 0x protocol's [Exchange](#exchange) contract to execute and settle trades directly to the blockchain.
 
 0x uses a modular system of Ethereum smart contracts which allows each component of the system to be upgraded via governance without effecting other components of the system and without causing active markets to be disrupted. Version 2 of 0x protocol further modularizes this contract pipeline through the introduction of [`AssetProxy`](#assetproxy) contracts, which allow new token standards, interfaces and payloads to be supported over time.
 
-=======
->>>>>>> master
 # Contracts
 
 ## Exchange
@@ -167,7 +161,6 @@ This contract expects [`assetData`](#assetdata) to be encoded in the following w
 
 The `ERC721Proxy` performs the transfer by calling the token's `safeTransferFrom` method. The transaction will be reverted if the owner has insufficient balance or if the `ERC721Proxy` is not approved to perform the transfer.
 
-<<<<<<< HEAD
 ## AssetProxyOwner
 
 The AssetProxyOwner contract is indirectly responsible for updating the [`Exchange`](#exchange) contracts that are allowed to call the transfer methods on each [`AssetProxy`](#assetproxy) contract. It is the only address that is allowed to call `addAuthorizedAddress` and `removeAuthorizedAddress` on each [`AssetProxy`](#assetproxy). Any transaction created by the `AssetProxyOwner` must be proposed, confirmed, and then may be executed after a 2 week timelock. The only exception to this is that `removeAuthorizedAddress` may be executed immediately, in case of security related bugs. The `AssetProxyOwner` may also call `transferOwnership`, allowing it to swap itself out with an upgraded contract.
@@ -231,15 +224,6 @@ TODO.
 New [`AssetProxy`](#assetproxy) contracts may be added into the system by calling `registerAssetProxy` on the [`Exchange`](#exchange) contract.
 
 TODO: Determine Exchange owner
-=======
-### Adding new AssetProxy contracts
-
-New [`AssetProxy`](#assetproxy) contracts may be added into the system by calling `registerAssetProxy` on the [`Exchange`](#exchange) contract. Only the [`AssetProxyOwner`](#assetproxyowner) contract may call this method.
-
-## AssetProxyOwner
-
-The AssetProxyOwner contract is indirectly responsible for updating the [`Exchange`](#exchange) contracts that are allowed to call the transfer methods on each [`AssetProxy`](#assetproxy) contract. It is the only address that is allowed to call `addAuthorizedAddress` and `removeAuthorizedAddress` on each [`AssetProxy`](#assetproxy). Any transaction created by the `AssetProxyOwner` must be proposed, confirmed, and then may be executed after a 2 week timelock. The only exception to this is that `removeAuthorizedAddress` may be executed immediately, in case of security related bugs. The `AssetProxyOwner` may also call `transferOwnership`, allowing it to swap itself out with an upgraded contract.
->>>>>>> master
 
 # Orders
 
