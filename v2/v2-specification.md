@@ -140,11 +140,19 @@ Currently, the protocol includes [`AssetProxy`](#assetproxy) contracts for ERC20
 
 The `ERC20Proxy` is responsible for transferring [ERC20 tokens](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-20.md). Users must first approve this contract by calling the `approve` method on the token that will be exchanged. It is recommended that users approve a value of 2^256 -1. This minimizes the amount of times `approve` must be called, and also [increases efficiency](https://github.com/ethereum/EIPs/issues/717) for many ERC20 tokens.
 
-This contract expects [`assetData`](#assetdata) to be encoded in the following way:
+This contract expects ERC20 [`assetData`](#assetdata) to be encoded using [ABIv2](http://solidity.readthedocs.io/en/latest/abi-spec.html) with the following 4 byte id:
 
-| Offset | Length | Contents               |
-| ------ | ------ | ---------------------- |
-| 0x00   | 20     | Address of ERC20 token |
+```
+// 0xf47261b0
+bytes4 ERC20_SELECTOR = bytes4(keccak256("ERC20Token(address)"));
+```
+
+The data is then encoded as:
+
+| Offset | Length | Contents                                        |
+| ------ | ------ | ----------------------------------------------- |
+| 0x00   | 4      | ERC20Proxy id (always 0xf47261b0)               |
+| 0x04   | 32     | Address of ERC20 token, left padded with zeroes |
 
 The `ERC20Proxy` performs the transfer by calling the token's `transferFrom` method. The transaction will be reverted if the owner has insufficient balance or if the `ERC20Proxy` does not have sufficient allowance to perform the transfer.
 
@@ -152,14 +160,23 @@ The `ERC20Proxy` performs the transfer by calling the token's `transferFrom` met
 
 The `ERC721Proxy` is responsible for transferring [ERC721 tokens](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-721.md). Users must first approve this contract by calling the `approve` or `setApprovalForAll` methods on the token that will be exchanged. `setApprovalForAll` is highly recommended, because it allows the user to approve multiple `tokenIds` with a single transaction.
 
-This contract expects [`assetData`](#assetdata) to be encoded in the following way:
+This contract expects ERC721 [`assetData`](#assetdata) to be encoded using [ABIv2](http://solidity.readthedocs.io/en/latest/abi-spec.html) with the following 4 byte id:
 
-| Offset | Length | Contents                                                  |
-| ------ | ------ | --------------------------------------------------------- |
-| 0x00   | 20     | Address of ERC721 token                                   |
-| 0x14   | 32     | tokenId of ERC721 token                                   |
-| 0x34   | 32     | Length of `data` to pass to `onERC721Received` (optional) |
-| 0x54   | x      | `data` to pass to `onERC721Received` (optional)           |
+```
+// 0x08e937fa
+bytes4 ERC721_SELECTOR = bytes4(keccak256("ERC721Token(address,uint256,bytes)"));
+```
+
+The data is then encoded as:
+
+| Offset | Length | Contents                                          |
+| ------ | ------ | ------------------------------------------------- |
+| 0x00   | 4      | ERC721 proxy id (always 0x08e937fa)               |
+| 0x04   | 32     | Address of ERC721 token, left padded with zeroes  |
+| 0x24   | 32     | tokenId of ERC721 token                           |
+| 0x44   | 32     | Offset of `data` from this location (always 0x20) |
+| 0x64   | 32     | Length of `data` to pass to `onERC721Received`    |
+| 0x84   | x      | `data` to pass to `onERC721Received` (optional)   |
 
 The `ERC721Proxy` performs the transfer by calling the token's `safeTransferFrom` method. The transaction will be reverted if the owner has insufficient balance or if the `ERC721Proxy` is not approved to perform the transfer.
 
@@ -243,8 +260,8 @@ An order message consists of the following parameters:
 | takerFee                        | uint256 | Amount of ZRX paid to feeRecipient by taker when order is filled. If set to 0, no transfer of ZRX from taker to feeRecipient will be attempted. |
 | expirationTimeSeconds           | uint256 | Timestamp in seconds at which order expires.                                                                                                    |
 | [salt](#salt)                   | uint256 | Arbitrary number to facilitate uniqueness of the order's hash.                                                                                  |
-| [makerAssetData](#assetdata)    | bytes   | Encoded data that can be decoded by a specified proxy contract when transferring makerAsset. The last byte references the id of this proxy.     |
-| [takerAssetData](#assetdata)    | bytes   | Encoded data that can be decoded by a specified proxy contract when transferring takerAsset. The last byte references the id of this proxy.     |
+| [makerAssetData](#assetdata)    | bytes   | ABIv2 encoded data that can be decoded by a specified proxy contract when transferring makerAsset.                                              |
+| [takerAssetData](#assetdata)    | bytes   | ABIv2 encoded data that can be decoded by a specified proxy contract when transferring takerAsset.                                              |
 
 ### SenderAddress
 
@@ -254,12 +271,12 @@ If the `senderAddress` of an order is not set to 0, only that address may call [
 
 An order's `salt` parameter has two main usecases:
 
-- To ensure uniqueness within an order's hash.
-- To be used in combination with [`cancelOrdersUpTo`](#cancelordersupto). To get the most benefit of this usecase, it is recommended that the `salt` field be treated as a timestamp for when orders have been created. A timestamp in milliseconds would allow a maker to create 1000 orders with the same parameters per second.
+-   To ensure uniqueness within an order's hash.
+-   To be used in combination with [`cancelOrdersUpTo`](#cancelordersupto). To get the most benefit of this usecase, it is recommended that the `salt` field be treated as a timestamp for when orders have been created. A timestamp in milliseconds would allow a maker to create 1000 orders with the same parameters per second.
 
 ### AssetData
 
-The `makerAssetData` and `takerAssetData` fileds of an order contain information specific to that asset. The last byte of this data must reference the id of an [`AssetProxy`](#assetproxy) contract that is intended to decode the remaining data. The last byte is popped off of the assetData byte arrays before being dispatched to the corresponding [`AssetProxy`](#assetproxy).
+The `makerAssetData` and `takerAssetData` fields of an order contain information specific to that asset. These fields are encoded using [ABIv2](http://solidity.readthedocs.io/en/latest/abi-spec.html) with a 4 byte id that references the proxy that is intended to decode the data. See the [`ERC20Proxy`](#erc20proxy) and [`ERC721Proxy`](#erc721proxy) sections for the layouts of the `assetData` fields for each `AssetProxy` contract.
 
 ## Hashing an order
 
@@ -320,16 +337,16 @@ This is the most basic way to fill an order. All of the other methods call `fill
 
 `fillOrder` will revert under the following conditions:
 
-- The caller of `fillOrder` is different from the `sender` specified in the order (unless `sender == address(0)`).
-- The taker of `fillOrder` is different from the `taker` specified in the order (unless `taker == address(0)`).
-- An invalid signature is submitted (this is only checked the first time an order is filled).
-- The `makerAssetAmount` or `takerAssetAmount` specified in the order are equal to 0.
-- The amount that the taker is attempting to fill is 0.
-- The order has expired.
-- The order has been cancelled.
-- The order has already been fully filled.
-- Filling the order results in a rounding error > 0.1% of the `takerAssetAmount` that would otherwise be filled.
-- Any transfers associated with the fill fail.
+-   The caller of `fillOrder` is different from the `sender` specified in the order (unless `sender == address(0)`).
+-   The taker of `fillOrder` is different from the `taker` specified in the order (unless `taker == address(0)`).
+-   An invalid signature is submitted (this is only checked the first time an order is filled).
+-   The `makerAssetAmount` or `takerAssetAmount` specified in the order are equal to 0.
+-   The amount that the taker is attempting to fill is 0.
+-   The order has expired.
+-   The order has been cancelled.
+-   The order has already been fully filled.
+-   Filling the order results in a rounding error > 0.1% of the `takerAssetAmount` that would otherwise be filled.
+-   Any transfers associated with the fill fail.
 
 If successful, `fillOrder` will emit a [`Fill`](#fill) event. If the transaction does not revert, a [`FillResults`](#fillresults) instance will be returned.
 
@@ -572,11 +589,11 @@ function matchOrders(
 
 `cancelOrder` will revert under the following conditions:
 
-- The `makerAssetAmount` or `takerAssetAmount` specified in the order are equal to 0.
-- The caller of `cancelOrder` is different from the `senderAddress` specified in the order (unless `senderAddress == address(0)`).
-- The maker of the order has not authorized the cancel, either by calling `cancelOrder` through an Ethereum transaction or a [0x transaction](#transactions).
-- The order has expired.
-- The order has already been cancelled.
+-   The `makerAssetAmount` or `takerAssetAmount` specified in the order are equal to 0.
+-   The caller of `cancelOrder` is different from the `senderAddress` specified in the order (unless `senderAddress == address(0)`).
+-   The maker of the order has not authorized the cancel, either by calling `cancelOrder` through an Ethereum transaction or a [0x transaction](#transactions).
+-   The order has expired.
+-   The order has already been cancelled.
 
 If successful, `cancelOrder` will emit a [`Cancel`](#cancel) event.
 
@@ -705,10 +722,10 @@ A transaction may only be executed by calling the `executeTransaction` method of
 
 `executeTransaction` will revert under the following conditions:
 
-- Reentrancy is attempted (e.g `executeTransaction` calls `executeTransaction` again).
-- A transaction with an equivalent hash has already been executed.
-- An invalid signature is submitted.
-- The execution of the provided data reverts.
+-   Reentrancy is attempted (e.g `executeTransaction` calls `executeTransaction` again).
+-   A transaction with an equivalent hash has already been executed.
+-   An invalid signature is submitted.
+-   The execution of the provided data reverts.
 
 ```
 /// @dev Executes an exchange method call in the context of signer.
