@@ -1211,15 +1211,14 @@ event SignatureValidatorApproval(
 );
 ```
 
-### AssetProxySet
+### AssetProxyRegistered
 
-Whenever an [`AssetProxy`](#assetproxy) is registered the [`Exchange`](#exchange) contract, an `AssetProxySet` is emitted.
+Whenever an [`AssetProxy`](#assetproxy) is registered the [`Exchange`](#exchange) contract, an `AssetProxyRegistered` is emitted.
 
 ```
-event AssetProxySet(
+event AssetProxyRegistered(
     uint8 id,               // Id of new registered AssetProxy.
-    address newAssetProxy,  // Address of new registered AssetProxy.
-    address oldAssetProxy   // Address of AssetProxy that was overwritten at given id (or null address).
+    address assetProxy,     // Address of new registered AssetProxy.
 );
 ```
 
