@@ -163,22 +163,19 @@ The `ERC721Proxy` is responsible for transferring [ERC721 tokens](https://github
 This contract expects ERC721 [`assetData`](#assetdata) to be encoded using [ABIv2](http://solidity.readthedocs.io/en/latest/abi-spec.html) with the following 4 byte id:
 
 ```
-// 0x08e937fa
-bytes4 ERC721_SELECTOR = bytes4(keccak256("ERC721Token(address,uint256,bytes)"));
+// 0x02571792
+bytes4 ERC721_SELECTOR = bytes4(keccak256("ERC721Token(address,uint256)"));
 ```
 
 The data is then encoded as:
 
-| Offset | Length | Contents                                          |
-| ------ | ------ | ------------------------------------------------- |
-| 0x00   | 4      | ERC721 proxy id (always 0x08e937fa)               |
-| 0x04   | 32     | Address of ERC721 token, left padded with zeroes  |
-| 0x24   | 32     | tokenId of ERC721 token                           |
-| 0x44   | 32     | Offset of `data` from this location (always 0x20) |
-| 0x64   | 32     | Length of `data` to pass to `onERC721Received`    |
-| 0x84   | x      | `data` to pass to `onERC721Received` (optional)   |
+| Offset | Length | Contents                                         |
+| ------ | ------ | ------------------------------------------------ |
+| 0x00   | 4      | ERC721 proxy id (always 0x02571792)              |
+| 0x04   | 32     | Address of ERC721 token, left padded with zeroes |
+| 0x24   | 32     | tokenId of ERC721 token                          |
 
-The `ERC721Proxy` performs the transfer by calling the token's `safeTransferFrom` method. The transaction will be reverted if the owner has insufficient balance or if the `ERC721Proxy` is not approved to perform the transfer.
+The `ERC721Proxy` performs the transfer by calling the token's `transferFrom` method. The transaction will be reverted if the owner has insufficient balance or if the `ERC721Proxy` is not approved to perform the transfer.
 
 ## AssetProxyOwner
 
