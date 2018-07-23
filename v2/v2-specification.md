@@ -39,7 +39,7 @@
 
 0x protocol uses an approach we refer to as **off-chain order relay with on-chain settlement**. In this approach, cryptographically signed [orders](#orders) are broadcast off of the blockchain through any arbitrary communication channel; an interested counterparty may inject one or more of these [orders](#orders) into 0x protocol's [`Exchange`](#exchange) contract to execute and settle trades directly to the blockchain.
 
-0x uses a modular system of Ethereum smart contracts which allows each component of the system to be upgraded via governance without effecting other components of the system and without causing active markets to be disrupted. Version 2 of 0x protocol further modularizes this contract pipeline through the introduction of [`AssetProxy`](#assetproxy) contracts, which allow new token standards, interfaces and payloads to be supported over time.
+0x uses a modular system of Ethereum smart contracts which allows each component of the system to be upgraded via governance without affecting other components of the system and without causing active markets to be disrupted. Version 2 of 0x protocol further modularizes this contract pipeline through the introduction of [`AssetProxy`](#assetproxy) contracts, which allow new token standards, interfaces and payloads to be supported over time.
 
 # Contracts
 
@@ -1192,7 +1192,7 @@ A `CancelUpTo` event is emitted whenever a [`cancelOrdersUpTo`](#cancelordersupt
 event CancelUpTo(
     address indexed makerAddress,         // Orders cancelled must have been created by this address.
     address indexed senderAddress,        // Orders cancelled must have a `senderAddress` equal to this address.
-    uint256 orderEpoch                    // Orders specified makerAddress and senderAddress with a salt <= this value are considered cancelled.
+    uint256 orderEpoch                    // Orders with specified makerAddress and senderAddress with a salt less than this value are considered cancelled.
 );
 ```
 
