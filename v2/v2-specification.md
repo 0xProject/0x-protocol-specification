@@ -112,19 +112,6 @@ contract IAssetProxy is
     )
         external;
 
-    /// @dev Makes multiple transfers of assets. Either succeeds or throws.
-    /// @param assetData Array of byte arrays encoded for the respective asset proxy.
-    /// @param from Array of addresses to transfer assets from.
-    /// @param to Array of addresses to transfer assets to.
-    /// @param amounts Array of amounts of assets to transfer.
-    function batchTransferFrom(
-        bytes[] memory assetData,
-        address[] memory from,
-        address[] memory to,
-        uint256[] memory amounts
-    )
-        public;
-
     /// @dev Gets the proxy id associated with the proxy address.
     /// @return Proxy id.
     function getProxyId()
@@ -154,6 +141,8 @@ The data is then encoded as:
 | 0x00   | 4      | ERC20Proxy id (always 0xf47261b0)               |
 | 0x04   | 32     | Address of ERC20 token, left padded with zeroes |
 
+NOTE: The `ERC20Proxy` does not enforce strict length checks for [`assetData`](#assetdata), which means that extra data may be appended to this field with any arbitrary encoding. Any extra data will be ignored by the `ERC20Proxy` but may be used in external contracts interacting with the [`Exchange`](#exchange) contract. Relayers that do not desire this behavior should validate the length of all [`assetData`](#assetdata) fields contained in [orders](#orders) before acceptance.
+
 The `ERC20Proxy` performs the transfer by calling the token's `transferFrom` method. The transaction will be reverted if the owner has insufficient balance or if the `ERC20Proxy` does not have sufficient allowance to perform the transfer.
 
 ### ERC721Proxy
@@ -174,6 +163,8 @@ The data is then encoded as:
 | 0x00   | 4      | ERC721 proxy id (always 0x02571792)              |
 | 0x04   | 32     | Address of ERC721 token, left padded with zeroes |
 | 0x24   | 32     | tokenId of ERC721 token                          |
+
+NOTE: The `ERC721Proxy` does not enforce strict length checks for [`assetData`](#assetdata), which means that extra data may be appended to this field with any arbitrary encoding. Any extra data will be ignored by the `ERC721Proxy` but may be used in external contracts interacting with the [`Exchange`](#exchange) contract. Relayers that do not desire this behavior should validate the length of all [`assetData`](#assetdata) fields contained in [orders](#orders) before acceptance.
 
 The `ERC721Proxy` performs the transfer by calling the token's `transferFrom` method. The transaction will be reverted if the owner has insufficient balance or if the `ERC721Proxy` is not approved to perform the transfer.
 
@@ -218,7 +209,7 @@ Transaction #1
 
 1.  `Exchange.fillOrder(order, value)`
 2.  `ERC721Proxy.transferFrom(assetData, from, to, value)`
-3.  `ERC721Token(assetData.address).safeTransferFrom(from, to, assetData.tokenId, assetData.data)`
+3.  `ERC721Token(assetData.address).transferFrom(from, to, assetData.tokenId)`
 4.  ERC721Token: (revert on failure)
 5.  ERC721Proxy: (revert on failure)
 6.  `ERC20Proxy.transferFrom(assetData, from, to, value)`
@@ -344,6 +335,9 @@ This is the most basic way to fill an order. All of the other methods call `fill
 -   The order has already been fully filled.
 -   Filling the order results in a rounding error > 0.1% of the `takerAssetAmount` that would otherwise be filled.
 -   Any transfers associated with the fill fail.
+-   The amount the taker is attempting to fill multiplied by the `makerAssetAmount` is greater than 256 bits.
+-   The amount the taker is attempting to fill multiplied by the `makerFee` is greater than 256 bits.
+-   The amount the taker is attempting to fill multiplied by the `takerFee` is greater than 256 bits.
 
 If successful, `fillOrder` will emit a [`Fill`](#fill) event. If the transaction does not revert, a [`FillResults`](#fillresults) instance will be returned.
 
