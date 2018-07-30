@@ -290,23 +290,21 @@ bytes32 constant EIP712_ORDER_SCHEMA_HASH = keccak256(abi.encodePacked(
 
 bytes32 orderHash = keccak256(abi.encodePacked(
     EIP191_HEADER,
-    EIP712_DOMAIN_SEPARATOR,
+    EIP712_DOMAIN_HASH,
     keccak256(abi.encodePacked(
         EIP712_ORDER_SCHEMA_HASH,
-        keccak256(abi.encodePacked(
-            order.makerAddress,
-            order.takerAddress,
-            order.feeRecipientAddress,
-            order.senderAddress,
-            order.makerAssetAmount,
-            order.takerAssetAmount,
-            order.makerFee,
-            order.takerFee,
-            order.expirationTimeSeconds,
-            order.salt,
-            keccak256(order.makerAssetData),
-            keccak256(order.takerAssetData)
-        ))
+        bytes32(order.makerAddress),
+        bytes32(order.takerAddress),
+        bytes32(order.feeRecipientAddress),
+        bytes32(order.senderAddress),
+        order.makerAssetAmount,
+        order.takerAssetAmount,
+        order.makerFee,
+        order.takerFee,
+        order.expirationTimeSeconds,
+        order.salt,
+        keccak256(order.makerAssetData),
+        keccak256(order.takerAssetData)
     ))
 ));
 ```
@@ -683,7 +681,7 @@ The hash of a transaction is used as a unique identifier for that transaction. A
 
 ```
 // Hash for the EIP712 ZeroEx Transaction Schema
-bytes32 constant EIP712_ZEROEX_TRANSACTION_SCHEMA_HASH = keccak256(abi.encodePacked(
+bytes32 constant internal EIP712_ZEROEX_TRANSACTION_SCHEMA_HASH = keccak256(abi.encodePacked(
     "ZeroExTransaction(",
     "uint256 salt,",
     "address signerAddress,",
@@ -747,12 +745,42 @@ This contract does not add any additional logic to how orders are filled or canc
 contract ExchangeWrapper {
 
     // Exchange contract.
-    IExchange EXCHANGE;
+    // solhint-disable-next-line var-name-mixedcase
+    IExchange internal EXCHANGE;
 
     constructor (address _exchange)
         public
     {
         EXCHANGE = IExchange(_exchange);
+    }
+
+    /// @dev Cancels all orders created by sender with a salt less than or equal to the targetOrderEpoch
+    ///      and senderAddress equal to this contract.
+    /// @param targetOrderEpoch Orders created with a salt less or equal to this value will be cancelled.
+    /// @param salt Arbitrary value to gaurantee uniqueness of 0x transaction hash.
+    /// @param makerSignature Proof that maker wishes to call this function with given params.
+    function cancelOrdersUpTo(
+        uint256 targetOrderEpoch,
+        uint256 salt,
+        bytes makerSignature
+    )
+        external
+    {
+        address makerAddress = msg.sender;
+
+        // Encode arguments into byte array.
+        bytes memory data = abi.encodeWithSelector(
+            EXCHANGE.cancelOrdersUpTo.selector,
+            targetOrderEpoch
+        );
+
+        // Call `cancelOrdersUpTo` via `executeTransaction`.
+        EXCHANGE.executeTransaction(
+            salt,
+            makerAddress,
+            data,
+            makerSignature
+        );
     }
 
     /// @dev Fills an order using `msg.sender` as the taker.
@@ -788,35 +816,6 @@ contract ExchangeWrapper {
             takerSignature
         );
     }
-
-    /// @dev Cancels all orders created by sender with a salt less than or equal to the targetOrderEpoch
-    ///      and senderAddress equal to this contract.
-    /// @param targetOrderEpoch Orders created with a salt less or equal to this value will be cancelled.
-    /// @param salt Arbitrary value to gaurantee uniqueness of 0x transaction hash.
-    /// @param makerSignature Proof that maker wishes to call this function with given params.
-    function cancelOrdersUpTo(
-        uint256 targetOrderEpoch,
-        uint256 salt,
-        bytes makerSignature
-    )
-        external
-    {
-        address makerAddress = msg.sender;
-
-        // Encode arguments into byte array.
-        bytes memory data = abi.encodeWithSelector(
-            EXCHANGE.cancelOrdersUpTo.selector,
-            cancelSalt
-        );
-
-        // Call `cancelOrdersUpTo` via `executeTransaction`.
-        EXCHANGE.executeTransaction(
-            salt,
-            makerAddress,
-            data,
-            makerSignature
-        );
-    }
 }
 ```
 
@@ -830,19 +829,17 @@ This contract also makes use of the [`Validator`](#validator) signature type. Ra
 contract Whitelist is
     Ownable
 {
-    // Revert reasons
-    string constant MAKER_NOT_WHITELISTED = "Maker address not whitelisted.";
-    string constant TAKER_NOT_WHITELISTED = "Taker address not whitelisted.";
-    string constant INVALID_SENDER = "Sender must equal transaction origin.";
 
     // Mapping of address => whitelist status.
     mapping (address => bool) public isWhitelisted;
 
     // Exchange contract.
-    IExchange EXCHANGE;
+    // solhint-disable var-name-mixedcase
+    IExchange internal EXCHANGE;
+    bytes internal TX_ORIGIN_SIGNATURE;
+    // solhint-enable var-name-mixedcase
 
-    byte constant VALIDATOR_SIGNATURE_BYTE = "\x06";
-    bytes TX_ORIGIN_SIGNATURE;
+    byte constant internal VALIDATOR_SIGNATURE_BYTE = "\x06";
 
     constructor (address _exchange)
         public
@@ -864,9 +861,30 @@ contract Whitelist is
         isWhitelisted[target] = isApproved;
     }
 
+    /// @dev Verifies signer is same as signer of current Ethereum transaction.
+    ///      NOTE: This function can currently be used to validate signatures coming from outside of this contract.
+    ///      Extra safety checks can be added for a production contract.
+    /// @param signerAddress Address that should have signed the given hash.
+    /// @param signature Proof of signing.
+    /// @return Validity of order signature.
+    // solhint-disable no-unused-vars
+    function isValidSignature(
+        bytes32 hash,
+        address signerAddress,
+        bytes signature
+    )
+        external
+        view
+        returns (bool isValid)
+    {
+        // solhint-disable-next-line avoid-tx-origin
+        return signerAddress == tx.origin;
+    }
+    // solhint-enable no-unused-vars
+
     /// @dev Fills an order using `msg.sender` as the taker.
     ///      The transaction will revert if both the maker and taker are not whitelisted.
-    ///      Orders should specify this contract as the senderAddress in order to gaurantee
+    ///      Orders should specify this contract as the `senderAddress` in order to gaurantee
     ///      that both maker and taker have been whitelisted.
     /// @param order Order struct containing order specifications.
     /// @param takerAssetFillAmount Desired amount of takerAsset to sell.
@@ -884,20 +902,21 @@ contract Whitelist is
 
         // This contract must be the entry point for the transaction.
         require(
+            // solhint-disable-next-line avoid-tx-origin
             takerAddress == tx.origin,
-            INVALID_SENDER
+            "INVALID_SENDER"
         );
 
         // Check if maker is on the whitelist.
         require(
             isWhitelisted[order.makerAddress],
-            MAKER_NOT_WHITELISTED
+            "MAKER_NOT_WHITELISTED"
         );
 
         // Check if taker is on the whitelist.
         require(
             isWhitelisted[takerAddress],
-            TAKER_NOT_WHITELISTED
+            "TAKER_NOT_WHITELISTED"
         );
 
         // Encode arguments into byte array.
@@ -915,24 +934,6 @@ contract Whitelist is
             data,
             TX_ORIGIN_SIGNATURE
         );
-    }
-
-    /// @dev Verifies signer is same as signer of current Ethereum transaction.
-    ///      NOTE: This function can currently be used to validate signatures coming from outside of this contract.
-    ///      Extra safety checks can be added for a production contract.
-    /// @param signerAddress Address that should have signed the given hash.
-    /// @param signature Proof of signing.
-    /// @return Validity of order signature.
-    function isValidSignature(
-        bytes32 hash,
-        address signerAddress,
-        bytes signature
-    )
-        external
-        view
-        returns (bool isValid)
-    {
-        return signerAddress == tx.origin;
     }
 }
 ```
@@ -1339,10 +1340,10 @@ The domain separator for the Exchange contract can be calculated with:
 
 ```
 // EIP191 header for EIP712 prefix
-string constant EIP191_HEADER = "\x19\x01";
+string constant internal EIP191_HEADER = "\x19\x01";
 
 // Hash of the EIP712 Domain Separator Schema
-bytes32 public constant EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH = keccak256(abi.encodePacked(
+bytes32 constant internal EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH = keccak256(abi.encodePacked(
     "EIP712Domain(",
     "string name,",
     "string version,",
