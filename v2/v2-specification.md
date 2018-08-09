@@ -183,7 +183,7 @@ A trade is initiated when an [order](#orders) is passed into the [`Exchange`](#e
 ### ERC20 <> ERC20
 
 <div style="text-align: center;">
-<img src="./0x_v2_trade_erc20_erc20.png" style="padding-bottom: 20px; padding-top: 20px;" width="80%" />
+<img src="./img/0x_v2_trade_erc20_erc20.png" style="padding-bottom: 20px; padding-top: 20px;" width="80%" />
 </div>
 
 Transaction #1
@@ -202,7 +202,7 @@ Transaction #1
 ### ERC20 <> ERC721
 
 <div style="text-align: center;">
-<img src="./0x_v2_trade_erc20_erc721.png" style="padding-bottom: 20px; padding-top: 20px;" width="80%" />
+<img src="./img/0x_v2_trade_erc20_erc721.png" style="padding-bottom: 20px; padding-top: 20px;" width="80%" />
 </div>
 
 Transaction #1
@@ -259,8 +259,8 @@ If the `senderAddress` of an order is not set to 0, only that address may call [
 
 An order's `salt` parameter has two main usecases:
 
--   To ensure uniqueness within an order's hash.
--   To be used in combination with [`cancelOrdersUpTo`](#cancelordersupto). To get the most benefit of this usecase, it is recommended that the `salt` field be treated as a timestamp for when orders have been created. A timestamp in milliseconds would allow a maker to create 1000 orders with the same parameters per second.
+- To ensure uniqueness within an order's hash.
+- To be used in combination with [`cancelOrdersUpTo`](#cancelordersupto). To get the most benefit of this usecase, it is recommended that the `salt` field be treated as a timestamp for when orders have been created. A timestamp in milliseconds would allow a maker to create 1000 orders with the same parameters per second.
 
 ### AssetData
 
@@ -323,19 +323,19 @@ This is the most basic way to fill an order. All of the other methods call `fill
 
 `fillOrder` will revert under the following conditions:
 
--   The caller of `fillOrder` is different from the `sender` specified in the order (unless `sender == address(0)`).
--   The taker of `fillOrder` is different from the `taker` specified in the order (unless `taker == address(0)`).
--   An invalid signature is submitted (this is only checked the first time an order is filled).
--   The `makerAssetAmount` or `takerAssetAmount` specified in the order are equal to 0.
--   The amount that the taker is attempting to fill is 0.
--   The order has expired.
--   The order has been cancelled.
--   The order has already been fully filled.
--   Filling the order results in a rounding error > 0.1% of the `takerAssetAmount` that would otherwise be filled.
--   Any transfers associated with the fill fail.
--   The amount the taker is attempting to fill multiplied by the `makerAssetAmount` is greater than 256 bits.
--   The amount the taker is attempting to fill multiplied by the `makerFee` is greater than 256 bits.
--   The amount the taker is attempting to fill multiplied by the `takerFee` is greater than 256 bits.
+- The caller of `fillOrder` is different from the `sender` specified in the order (unless `sender == address(0)`).
+- The taker of `fillOrder` is different from the `taker` specified in the order (unless `taker == address(0)`).
+- An invalid signature is submitted (this is only checked the first time an order is filled).
+- The `makerAssetAmount` or `takerAssetAmount` specified in the order are equal to 0.
+- The amount that the taker is attempting to fill is 0.
+- The order has expired.
+- The order has been cancelled.
+- The order has already been fully filled.
+- Filling the order results in a rounding error > 0.1% of the `takerAssetAmount` that would otherwise be filled.
+- Any transfers associated with the fill fail.
+- The amount the taker is attempting to fill multiplied by the `makerAssetAmount` is greater than 256 bits.
+- The amount the taker is attempting to fill multiplied by the `makerFee` is greater than 256 bits.
+- The amount the taker is attempting to fill multiplied by the `takerFee` is greater than 256 bits.
 
 If successful, `fillOrder` will emit a [`Fill`](#fill) event. If the transaction does not revert, a [`FillResults`](#fillresults) instance will be returned.
 
@@ -578,11 +578,11 @@ function matchOrders(
 
 `cancelOrder` will revert under the following conditions:
 
--   The `makerAssetAmount` or `takerAssetAmount` specified in the order are equal to 0.
--   The caller of `cancelOrder` is different from the `senderAddress` specified in the order (unless `senderAddress == address(0)`).
--   The maker of the order has not authorized the cancel, either by calling `cancelOrder` through an Ethereum transaction or a [0x transaction](#transactions).
--   The order has expired.
--   The order has already been cancelled.
+- The `makerAssetAmount` or `takerAssetAmount` specified in the order are equal to 0.
+- The caller of `cancelOrder` is different from the `senderAddress` specified in the order (unless `senderAddress == address(0)`).
+- The maker of the order has not authorized the cancel, either by calling `cancelOrder` through an Ethereum transaction or a [0x transaction](#transactions).
+- The order has expired.
+- The order has already been cancelled.
 
 If successful, `cancelOrder` will emit a [`Cancel`](#cancel) event.
 
@@ -711,10 +711,10 @@ A transaction may only be executed by calling the `executeTransaction` method of
 
 `executeTransaction` will revert under the following conditions:
 
--   Reentrancy is attempted (e.g `executeTransaction` calls `executeTransaction` again).
--   A transaction with an equivalent hash has already been executed.
--   An invalid signature is submitted.
--   The execution of the provided data reverts.
+- Reentrancy is attempted (e.g `executeTransaction` calls `executeTransaction` again).
+- A transaction with an equivalent hash has already been executed.
+- An invalid signature is submitted.
+- The execution of the provided data reverts.
 
 ```
 /// @dev Executes an exchange method call in the context of signer.

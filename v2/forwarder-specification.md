@@ -10,7 +10,9 @@
 
 # Architecture
 
-![Forwarder](https://github.com/0xProject/0x-protocol-specification/blob/921082aa00dcffc6ecad00b68c3984db1893dce6/v2/0x_v2_forwarder.png?raw=true)
+<div style="text-align: center;">
+<img src="./img/0x_v2_forwarder.png" style="padding-bottom: 20px; padding-top: 20px;" width="80%" />
+</div>
 
 The Forwarding contract acts as a middleman between the user and the 0x Exchange contract. Its purpose is to perform a number of useful actions on the users behalf. Conveniently reducing the number of steps and transactions.
 
@@ -103,6 +105,7 @@ This function will revert under the following conditions:
 - The amount of ZRX paid in fees cannot be repurchased
 - The supplied `feePercentage` is greater than 5% (represented as 0.05 \* 10^18)
 - The required ETH fee cannot be paid
+- More ETH is sold than the value included in the transaction
 
 ```solidity
     /// @dev Purchases as much of orders' makerAssets as possible by selling up to 95% of transaction's ETH value.
