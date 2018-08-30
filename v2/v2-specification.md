@@ -333,10 +333,11 @@ This is the most basic way to fill an order. All of the other methods call `fill
 - The order has been cancelled.
 - The order has already been fully filled.
 - Filling the order results in a rounding error > 0.1% of the `takerAssetAmount` that would otherwise be filled.
-- Any transfers associated with the fill fail.
+- Any transfers associated with the fill fails.
 - The amount the taker is attempting to fill multiplied by the `makerAssetAmount` is greater than 256 bits.
 - The amount the taker is attempting to fill multiplied by the `makerFee` is greater than 256 bits.
 - The amount the taker is attempting to fill multiplied by the `takerFee` is greater than 256 bits.
+- [Reentrancy](#reentrancy-protection) is attempted to any function within the `Exchange` contract that contains a mutex.
 
 If successful, `fillOrder` will emit a [`Fill`](#fill) event. If the transaction does not revert, a [`FillResults`](#fillresults) instance will be returned.
 
@@ -1370,3 +1371,50 @@ If frequently trading from a single address, it may make sense to generate a van
 ## ecrecover usage
 
 The `ecrecover` precompile available in Solidity expects `v` to always have a value of `27` or `28`. Some signers and clients assume that `v` will have a value of `0` or `1`, so it may be necessary to add `27` to `v` before submitting it to the `Exchange` contract.
+
+## Reentrancy protection
+
+The following functions within the `Exchange` contract contain a mutex that prevents them from called via [reentrancy](https://solidity.readthedocs.io/en/v0.4.24/security-considerations.html#re-entrancy):
+
+- [`fillOrder`](#fillorder)
+- [`fillOrKillOrder`](#fillorkillorder)
+- [`batchFillOrders`](#batchfillorders)
+- [`batchFillOrKillOrders`](#batchfillorkillorders)
+- [`marketBuyOrders`](#marketbuyorders)
+- [`marketSellOrders`](#marketsellorders)
+- [`matchOrders`](#matchorders)
+- [`cancelOrder`](#cancelorder)
+- [`batchCancelOrders`](#batchcancelorders)
+- [`cancelOrdersUpTo`](#cancelordersupto)
+- [`setSignatureValidatorApproval`](#validator)
+
+[`fillOrderNoThrow`](#fillordernothrow) and all of its variations do not explicitly have a mutex, but will fail gracefully if any reentrancy is attempted.
+
+The mutex is implemented with the following `nonReentrant` modifier:
+
+```
+contract ReentrancyGuard {
+
+    // Locked state of mutex
+    bool private locked = false;
+
+    /// @dev Functions with this modifer cannot be reentered. The mutex will be locked
+    ///      before function execution and unlocked after.
+    modifier nonReentrant() {
+        // Ensure mutex is unlocked
+        require(
+            !locked,
+            "REENTRANCY_ILLEGAL"
+        );
+
+        // Lock mutex before function call
+        locked = true;
+
+        // Perform function call
+        _;
+
+        // Unlock mutex after function call
+        locked = false;
+    }
+}
+```
