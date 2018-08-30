@@ -34,6 +34,7 @@
 1.  [Miscellaneous](#miscellaneous)
     1.  [EIP712 usage](#eip712-usage)
     1.  [Optimizing calldata](#optimizing-calldata)
+    1.  [ecrecover usage](#ecrecover-usage)
 
 # Architecture
 
@@ -984,17 +985,17 @@ An `Invalid` signature always returns false. An invalid signature can always be 
 
 ### EIP712
 
-An `EIP712` signature is considered valid if the address recovered from calling `ecrecover` with the given hash and decoded `v`, `r`, `s` values is the same as the specified signer. In this case, the signature is encoded in the following way:
+An `EIP712` signature is considered valid if the address recovered from calling [`ecrecover`](#ecrecover-usage) with the given hash and decoded `v`, `r`, `s` values is the same as the specified signer. In this case, the signature is encoded in the following way:
 
-| Offset | Length | Contents |
-| ------ | ------ | -------- |
-| 0x00   | 1      | v        |
-| 0x01   | 32     | r        |
-| 0x21   | 32     | s        |
+| Offset | Length | Contents            |
+| ------ | ------ | ------------------- |
+| 0x00   | 1      | v (always 27 or 28) |
+| 0x01   | 32     | r                   |
+| 0x21   | 32     | s                   |
 
 ### EthSign
 
-An `EthSign` signature is considered valid if the address recovered from calling `ecrecover` with the an EthSign-prefixed hash and decoded `v`, `r`, `s` values is the same as the specified signer.
+An `EthSign` signature is considered valid if the address recovered from calling [`ecrecover`](#ecrecover-usage) with the an EthSign-prefixed hash and decoded `v`, `r`, `s` values is the same as the specified signer.
 
 The prefixed `msgHash` is calculated with:
 
@@ -1365,3 +1366,7 @@ The [`matchOrders`](#matchorders), [`marketSellOrders`](#marketsellorders), [`ma
 ### Vanity addresses
 
 If frequently trading from a single address, it may make sense to generate a vanity address with as many zero bytes as possible.
+
+## ecrecover usage
+
+The `ecrecover` precompile available in Solidity expects `v` to always have a value of `27` or `28`. Some signers and clients assume that `v` will have a value of `0` or `1`, so it may be necessary to add `27` to `v` before submitting it to the `Exchange` contract.
