@@ -665,6 +665,20 @@ function getOrderInfo(Order memory order)
     returns (OrderInfo memory orderInfo);
 ```
 
+### getOrdersInfo
+
+`getOrdersInfo` calls [`getOrderInfo`](#getorderinfo) sequentially for each provided order.
+
+```
+/// @dev Fetches information for all passed in orders.
+/// @param orders Array of order specifications.
+/// @return Array of OrderInfo instances that correspond to each order.
+function getOrdersInfo(LibOrder.Order[] memory orders)
+    public
+    view
+    returns (LibOrder.OrderInfo[] memory);
+```
+
 # Transactions
 
 Transaction messages exist for the purpose of calling methods on the [`Exchange`](#exchange) contract in the context of another address (see [ZEIP18](https://github.com/0xProject/ZEIPs/issues/18)). This is especially useful for implementing [filter contracts](#filter-contracts).
