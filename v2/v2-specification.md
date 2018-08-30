@@ -1023,7 +1023,7 @@ bytes32 msgHash = keccak256(abi.encodePacked(ETH_PERSONAL_MESSAGE, hash));
 
 ### Wallet
 
-The `Wallet` signature type allows a contract to trade on behalf of any other address(es) by defining it's own signature validation function. When used with order signing, the `Wallet` contract _is_ the `maker` of the order and should hold any assets that will be traded. This contract should have the following interface:
+The `Wallet` signature type allows a contract to trade on behalf of any other address(es) by defining its own signature validation function. When used with order signing, the `Wallet` contract _is_ the `maker` of the order and should hold any assets that will be traded. When using this signature type, the [`Exchange`](#exchange) contract makes a `STATICCALL` to the `Wallet` contract's `isValidSignature` method, which means that signature verifcation will fail and revert if the `Wallet` attempts to update state. This contract should have the following interface:
 
 ```
 contract IWallet {
@@ -1092,7 +1092,7 @@ contract IValidator {
 }
 ```
 
-The signature is validated by calling the `Validator` contract's `isValidSignature` method.
+The signature is validated by calling the `Validator` contract's `isValidSignature` method. When using this signature type, the [`Exchange`](#exchange) contract makes a `STATICCALL` to the `Validator` contract's `isValidSignature` method, which means that signature verifcation will fail and revert if the `Validator` attempts to update state.
 
 ```
 // Pop last 20 bytes off of signature byte array.
@@ -1103,7 +1103,8 @@ if (!allowedValidators[signerAddress][validatorAddress]) {
     return false;
 }
 
-isValid = IValidator(validatorAddress).isValidSignature(
+isValid = isValidValidatorSignature(
+    validatorAddress,
     hash,
     signerAddress,
     signature
@@ -1118,7 +1119,7 @@ Allows any address to sign a hash on-chain by calling the `preSign` method on th
 // Mapping of hash => signer => signed
 mapping (bytes32 => mapping(address => bool)) public preSigned;
 
-/// @dev Approves a hash on-chain using any valid signature type.
+/// @dev Approves a hash on-chain using any valid signature type or `msg.sender`.
 ///      After presigning a hash, the preSign signature type will become valid for that hash and signer.
 /// @param signerAddress Address that should have signed the given hash.
 /// @param signature Proof that the hash has been signed by signer.
