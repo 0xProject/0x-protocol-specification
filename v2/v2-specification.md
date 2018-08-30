@@ -970,11 +970,9 @@ All signatures submitted to the Exchange contract are represented as a byte arra
 | 0x01           | [Invalid](#invalid)     |
 | 0x02           | [EIP712](#eip712)       |
 | 0x03           | [EthSign](#ethsign)     |
-| 0x04           | [Caller](#caller)       |
-| 0x05           | [Wallet](#wallet)       |
-| 0x06           | [Validator](#validator) |
-| 0x07           | [PreSigned](#presigned) |
-| 0x08           | [Trezor](#trezor)       |
+| 0x04           | [Wallet](#wallet)       |
+| 0x05           | [Validator](#validator) |
+| 0x06           | [PreSigned](#presigned) |
 
 ### Illegal
 
@@ -1006,10 +1004,6 @@ bytes32 msgHash = keccak256(abi.encodePacked(ETH_PERSONAL_MESSAGE, hash));
 ```
 
 `v`, `r`, and `s` are encoded in the signature byte array using the same scheme as [EIP712 signatures](#EIP712).
-
-### Caller
-
-This signature type will consider the signer to be the sender of the current message call (i.e `msg.sender`).
 
 ### Wallet
 
@@ -1126,19 +1120,6 @@ The hash can then be validated with only a `PreSigned` signature byte by checkin
 isValid = preSigned[hash][signerAddress];
 return isValid;
 ```
-
-### Trezor
-
-This signature type allows for compatability with Trezor hardware wallets, which use a non-standard encoding when adding a prefix to the hash being signed. A `Trezor` signature is considered valid if the address recovered from calling `ecrecover` with the a Trezor-prefixed hash and decoded `v`, `r`, `s` values is the same as the specified signer.
-
-The prefixed `msgHash` is calculated with:
-
-```
-string constant TREZOR_PERSONAL_MESSAGE = "\x19Ethereum Signed Message:\n\x20";
-bytes32 msgHash = keccak256(abi.encodePacked(TREZOR_PERSONAL_MESSAGE, hash));
-```
-
-`v`, `r`, and `s` are encoded in the signature byte array using the same scheme as [EIP712 signatures](#EIP712).
 
 # Events
 
