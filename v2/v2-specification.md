@@ -31,6 +31,7 @@
     1.  [AssetProxy events](#assetproxy-events)
     1.  [AssetProxyOwner events](#assetproxyowner-events)
 1.  [Types](#types)
+1.  [Standard relayer API](#standard-relayer-api)
 1.  [Miscellaneous](#miscellaneous)
     1.  [EIP712 usage](#eip712-usage)
     1.  [Optimizing calldata](#optimizing-calldata)
@@ -1327,6 +1328,10 @@ struct OrderInfo {
     uint256 orderTakerAssetFilledAmount;  // Amount of order that has already been filled.
 }
 ```
+
+# Standard relayer API
+
+For a full specification of how orders are intended to be posted to and retrieved from relayers, see the [SRA v2 specification](https://github.com/0xProject/standard-relayer-api#sra-v2).
 
 # Miscellaneous
 
