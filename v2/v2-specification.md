@@ -1,4 +1,6 @@
-# Table of contents
+# 0x protocol 2.0.0 specification
+
+## Table of contents
 
 1.  [Architecture](#architecture)
 1.  [Contracts](#contracts)
@@ -36,6 +38,7 @@
     1.  [EIP712 usage](#eip712-usage)
     1.  [Optimizing calldata](#optimizing-calldata)
     1.  [ecrecover usage](#ecrecover-usage)
+    1.  [Reentrancy protection](#reentrancy-protection)
 
 # Architecture
 
