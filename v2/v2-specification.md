@@ -252,18 +252,18 @@ An order message consists of the following parameters:
 | [makerAssetData](#assetdata)    | bytes   | ABIv2 encoded data that can be decoded by a specified proxy contract when transferring makerAsset.                                              |
 | [takerAssetData](#assetdata)    | bytes   | ABIv2 encoded data that can be decoded by a specified proxy contract when transferring takerAsset.                                              |
 
-### SenderAddress
+### senderAddress
 
 If the `senderAddress` of an order is not set to 0, only that address may call [`Exchange`](#exchange) contract methods that affect that order. See the [filter contracts examples](#filter-contracts) for more information.
 
-### Salt
+### salt
 
 An order's `salt` parameter has two main usecases:
 
 - To ensure uniqueness within an order's hash.
-- To be used in combination with [`cancelOrdersUpTo`](#cancelordersupto). To get the most benefit of this usecase, it is recommended that the `salt` field be treated as a timestamp for when orders have been created. A timestamp in milliseconds would allow a maker to create 1000 orders with the same parameters per second.
+- To be used in combination with [`cancelOrdersUpTo`](#cancelordersupto). When creating an order, the `salt` value _should_ be equal to the value of the current timestamp in milliseconds. This allows maker to create 1000 orders with the same parameters per second. Note that although this is part of the protocol specification, there is currently no way to enforce this usage and `salt` values should _not_ be relied upon as a surce of truth.
 
-### AssetData
+### assetData
 
 The `makerAssetData` and `takerAssetData` fields of an order contain information specific to that asset. These fields are encoded using [ABIv2](http://solidity.readthedocs.io/en/latest/abi-spec.html) with a 4 byte id that references the proxy that is intended to decode the data. See the [`ERC20Proxy`](#erc20proxy) and [`ERC721Proxy`](#erc721proxy) sections for the layouts of the `assetData` fields for each `AssetProxy` contract.
 
