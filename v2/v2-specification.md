@@ -31,9 +31,11 @@
     1.  [AssetProxy events](#assetproxy-events)
     1.  [AssetProxyOwner events](#assetproxyowner-events)
 1.  [Types](#types)
+1.  [Standard relayer API](#standard-relayer-api)
 1.  [Miscellaneous](#miscellaneous)
     1.  [EIP712 usage](#eip712-usage)
     1.  [Optimizing calldata](#optimizing-calldata)
+    1.  [ecrecover usage](#ecrecover-usage)
 
 # Architecture
 
@@ -251,18 +253,18 @@ An order message consists of the following parameters:
 | [makerAssetData](#assetdata)    | bytes   | ABIv2 encoded data that can be decoded by a specified proxy contract when transferring makerAsset.                                              |
 | [takerAssetData](#assetdata)    | bytes   | ABIv2 encoded data that can be decoded by a specified proxy contract when transferring takerAsset.                                              |
 
-### SenderAddress
+### senderAddress
 
 If the `senderAddress` of an order is not set to 0, only that address may call [`Exchange`](#exchange) contract methods that affect that order. See the [filter contracts examples](#filter-contracts) for more information.
 
-### Salt
+### salt
 
 An order's `salt` parameter has two main usecases:
 
 - To ensure uniqueness within an order's hash.
-- To be used in combination with [`cancelOrdersUpTo`](#cancelordersupto). To get the most benefit of this usecase, it is recommended that the `salt` field be treated as a timestamp for when orders have been created. A timestamp in milliseconds would allow a maker to create 1000 orders with the same parameters per second.
+- To be used in combination with [`cancelOrdersUpTo`](#cancelordersupto). When creating an order, the `salt` value _should_ be equal to the value of the current timestamp in milliseconds. This allows maker to create 1000 orders with the same parameters per second. Note that although this is part of the protocol specification, there is currently no way to enforce this usage and `salt` values should _not_ be relied upon as a surce of truth.
 
-### AssetData
+### assetData
 
 The `makerAssetData` and `takerAssetData` fields of an order contain information specific to that asset. These fields are encoded using [ABIv2](http://solidity.readthedocs.io/en/latest/abi-spec.html) with a 4 byte id that references the proxy that is intended to decode the data. See the [`ERC20Proxy`](#erc20proxy) and [`ERC721Proxy`](#erc721proxy) sections for the layouts of the `assetData` fields for each `AssetProxy` contract.
 
@@ -332,10 +334,11 @@ This is the most basic way to fill an order. All of the other methods call `fill
 - The order has been cancelled.
 - The order has already been fully filled.
 - Filling the order results in a rounding error > 0.1% of the `takerAssetAmount` that would otherwise be filled.
-- Any transfers associated with the fill fail.
+- Any transfers associated with the fill fails.
 - The amount the taker is attempting to fill multiplied by the `makerAssetAmount` is greater than 256 bits.
 - The amount the taker is attempting to fill multiplied by the `makerFee` is greater than 256 bits.
 - The amount the taker is attempting to fill multiplied by the `takerFee` is greater than 256 bits.
+- [Reentrancy](#reentrancy-protection) is attempted to any function within the `Exchange` contract that contains a mutex.
 
 If successful, `fillOrder` will emit a [`Fill`](#fill) event. If the transaction does not revert, a [`FillResults`](#fillresults) instance will be returned.
 
@@ -663,6 +666,20 @@ function getOrderInfo(Order memory order)
     returns (OrderInfo memory orderInfo);
 ```
 
+### getOrdersInfo
+
+`getOrdersInfo` calls [`getOrderInfo`](#getorderinfo) sequentially for each provided order.
+
+```
+/// @dev Fetches information for all passed in orders.
+/// @param orders Array of order specifications.
+/// @return Array of OrderInfo instances that correspond to each order.
+function getOrdersInfo(LibOrder.Order[] memory orders)
+    public
+    view
+    returns (LibOrder.OrderInfo[] memory);
+```
+
 # Transactions
 
 Transaction messages exist for the purpose of calling methods on the [`Exchange`](#exchange) contract in the context of another address (see [ZEIP18](https://github.com/0xProject/ZEIPs/issues/18)). This is especially useful for implementing [filter contracts](#filter-contracts).
@@ -970,11 +987,9 @@ All signatures submitted to the Exchange contract are represented as a byte arra
 | 0x01           | [Invalid](#invalid)     |
 | 0x02           | [EIP712](#eip712)       |
 | 0x03           | [EthSign](#ethsign)     |
-| 0x04           | [Caller](#caller)       |
-| 0x05           | [Wallet](#wallet)       |
-| 0x06           | [Validator](#validator) |
-| 0x07           | [PreSigned](#presigned) |
-| 0x08           | [Trezor](#trezor)       |
+| 0x04           | [Wallet](#wallet)       |
+| 0x05           | [Validator](#validator) |
+| 0x06           | [PreSigned](#presigned) |
 
 ### Illegal
 
@@ -986,17 +1001,17 @@ An `Invalid` signature always returns false. An invalid signature can always be 
 
 ### EIP712
 
-An `EIP712` signature is considered valid if the address recovered from calling `ecrecover` with the given hash and decoded `v`, `r`, `s` values is the same as the specified signer. In this case, the signature is encoded in the following way:
+An `EIP712` signature is considered valid if the address recovered from calling [`ecrecover`](#ecrecover-usage) with the given hash and decoded `v`, `r`, `s` values is the same as the specified signer. In this case, the signature is encoded in the following way:
 
-| Offset | Length | Contents |
-| ------ | ------ | -------- |
-| 0x00   | 1      | v        |
-| 0x01   | 32     | r        |
-| 0x21   | 32     | s        |
+| Offset | Length | Contents            |
+| ------ | ------ | ------------------- |
+| 0x00   | 1      | v (always 27 or 28) |
+| 0x01   | 32     | r                   |
+| 0x21   | 32     | s                   |
 
 ### EthSign
 
-An `EthSign` signature is considered valid if the address recovered from calling `ecrecover` with the an EthSign-prefixed hash and decoded `v`, `r`, `s` values is the same as the specified signer.
+An `EthSign` signature is considered valid if the address recovered from calling [`ecrecover`](#ecrecover-usage) with the an EthSign-prefixed hash and decoded `v`, `r`, `s` values is the same as the specified signer.
 
 The prefixed `msgHash` is calculated with:
 
@@ -1007,13 +1022,9 @@ bytes32 msgHash = keccak256(abi.encodePacked(ETH_PERSONAL_MESSAGE, hash));
 
 `v`, `r`, and `s` are encoded in the signature byte array using the same scheme as [EIP712 signatures](#EIP712).
 
-### Caller
-
-This signature type will consider the signer to be the sender of the current message call (i.e `msg.sender`).
-
 ### Wallet
 
-The `Wallet` signature type allows a contract to trade on behalf of any other address(es) by defining it's own signature validation function. When used with order signing, the `Wallet` contract _is_ the `maker` of the order and should hold any assets that will be traded. This contract should have the following interface:
+The `Wallet` signature type allows a contract to trade on behalf of any other address(es) by defining its own signature validation function. When used with order signing, the `Wallet` contract _is_ the `maker` of the order and should hold any assets that will be traded. When using this signature type, the [`Exchange`](#exchange) contract makes a `STATICCALL` to the `Wallet` contract's `isValidSignature` method, which means that signature verifcation will fail and revert if the `Wallet` attempts to update state. This contract should have the following interface:
 
 ```
 contract IWallet {
@@ -1082,7 +1093,7 @@ contract IValidator {
 }
 ```
 
-The signature is validated by calling the `Validator` contract's `isValidSignature` method.
+The signature is validated by calling the `Validator` contract's `isValidSignature` method. When using this signature type, the [`Exchange`](#exchange) contract makes a `STATICCALL` to the `Validator` contract's `isValidSignature` method, which means that signature verifcation will fail and revert if the `Validator` attempts to update state.
 
 ```
 // Pop last 20 bytes off of signature byte array.
@@ -1093,7 +1104,8 @@ if (!allowedValidators[signerAddress][validatorAddress]) {
     return false;
 }
 
-isValid = IValidator(validatorAddress).isValidSignature(
+isValid = isValidValidatorSignature(
+    validatorAddress,
     hash,
     signerAddress,
     signature
@@ -1108,7 +1120,7 @@ Allows any address to sign a hash on-chain by calling the `preSign` method on th
 // Mapping of hash => signer => signed
 mapping (bytes32 => mapping(address => bool)) public preSigned;
 
-/// @dev Approves a hash on-chain using any valid signature type.
+/// @dev Approves a hash on-chain using any valid signature type or `msg.sender`.
 ///      After presigning a hash, the preSign signature type will become valid for that hash and signer.
 /// @param signerAddress Address that should have signed the given hash.
 /// @param signature Proof that the hash has been signed by signer.
@@ -1126,19 +1138,6 @@ The hash can then be validated with only a `PreSigned` signature byte by checkin
 isValid = preSigned[hash][signerAddress];
 return isValid;
 ```
-
-### Trezor
-
-This signature type allows for compatability with Trezor hardware wallets, which use a non-standard encoding when adding a prefix to the hash being signed. A `Trezor` signature is considered valid if the address recovered from calling `ecrecover` with the a Trezor-prefixed hash and decoded `v`, `r`, `s` values is the same as the specified signer.
-
-The prefixed `msgHash` is calculated with:
-
-```
-string constant TREZOR_PERSONAL_MESSAGE = "\x19Ethereum Signed Message:\n\x20";
-bytes32 msgHash = keccak256(abi.encodePacked(TREZOR_PERSONAL_MESSAGE, hash));
-```
-
-`v`, `r`, and `s` are encoded in the signature byte array using the same scheme as [EIP712 signatures](#EIP712).
 
 # Events
 
@@ -1330,6 +1329,10 @@ struct OrderInfo {
 }
 ```
 
+# Standard relayer API
+
+For a full specification of how orders are intended to be posted to and retrieved from relayers, see the [SRA v2 specification](https://github.com/0xProject/standard-relayer-api#sra-v2).
+
 # Miscellaneous
 
 ## EIP712 usage
@@ -1384,3 +1387,54 @@ The [`matchOrders`](#matchorders), [`marketSellOrders`](#marketsellorders), [`ma
 ### Vanity addresses
 
 If frequently trading from a single address, it may make sense to generate a vanity address with as many zero bytes as possible.
+
+## ecrecover usage
+
+The `ecrecover` precompile available in Solidity expects `v` to always have a value of `27` or `28`. Some signers and clients assume that `v` will have a value of `0` or `1`, so it may be necessary to add `27` to `v` before submitting it to the `Exchange` contract.
+
+## Reentrancy protection
+
+The following functions within the `Exchange` contract contain a mutex that prevents them from called via [reentrancy](https://solidity.readthedocs.io/en/v0.4.24/security-considerations.html#re-entrancy):
+
+- [`fillOrder`](#fillorder)
+- [`fillOrKillOrder`](#fillorkillorder)
+- [`batchFillOrders`](#batchfillorders)
+- [`batchFillOrKillOrders`](#batchfillorkillorders)
+- [`marketBuyOrders`](#marketbuyorders)
+- [`marketSellOrders`](#marketsellorders)
+- [`matchOrders`](#matchorders)
+- [`cancelOrder`](#cancelorder)
+- [`batchCancelOrders`](#batchcancelorders)
+- [`cancelOrdersUpTo`](#cancelordersupto)
+- [`setSignatureValidatorApproval`](#validator)
+
+[`fillOrderNoThrow`](#fillordernothrow) and all of its variations do not explicitly have a mutex, but will fail gracefully if any reentrancy is attempted.
+
+The mutex is implemented with the following `nonReentrant` modifier:
+
+```
+contract ReentrancyGuard {
+
+    // Locked state of mutex
+    bool private locked = false;
+
+    /// @dev Functions with this modifer cannot be reentered. The mutex will be locked
+    ///      before function execution and unlocked after.
+    modifier nonReentrant() {
+        // Ensure mutex is unlocked
+        require(
+            !locked,
+            "REENTRANCY_ILLEGAL"
+        );
+
+        // Lock mutex before function call
+        locked = true;
+
+        // Perform function call
+        _;
+
+        // Unlock mutex after function call
+        locked = false;
+    }
+}
+```
