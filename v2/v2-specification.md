@@ -289,7 +289,7 @@ bytes32 constant EIP712_ORDER_SCHEMA_HASH = keccak256(abi.encodePacked(
     "uint256 expirationTimeSeconds,",
     "uint256 salt,",
     "bytes makerAssetData,",
-    "bytes takerAssetData,",
+    "bytes takerAssetData",
     ")"
 ));
 
