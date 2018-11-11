@@ -1365,7 +1365,7 @@ bytes32 EIP712_DOMAIN_HASH = keccak256(abi.encodePacked(
 ));
 ```
 
-For more information about how this is used, see [hashing an order](#hashing-an-order) and [hash of a transaction](#hash-of-a-transaction).
+For more information about how this is used, see [hashing an order](#hashing-an-order) and [hashing a transaction](#hash-of-a-transaction).
 
 ## Optimizing calldata
 
