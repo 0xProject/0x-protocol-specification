@@ -6,6 +6,9 @@
 1.  [Contracts](#contracts)
     1.  [Exchange](#exchange)
     1.  [AssetProxy](#assetproxy)
+        1. [ERC20Proxy](#erc20proxy)
+        1. [ERC721Proxy](#erc721proxy)
+        1. [MultiAssetProxy](#multiassetproxy)
     1.  [AssetProxyOwner](#assetproxyowner)
 1.  [Contract Interactions](#contract-interactions)
     1.  [Trade settlement](#trade-settlement)
@@ -172,6 +175,33 @@ The data is then encoded as:
 NOTE: The `ERC721Proxy` does not enforce strict length checks for [`assetData`](#assetdata), which means that extra data may be appended to this field with any arbitrary encoding. Any extra data will be ignored by the `ERC721Proxy` but may be used in external contracts interacting with the [`Exchange`](#exchange) contract. Relayers that do not desire this behavior should validate the length of all [`assetData`](#assetdata) fields contained in [orders](#orders) before acceptance.
 
 The `ERC721Proxy` performs the transfer by calling the token's `transferFrom` method. The transaction will be reverted if the owner has insufficient balance or if the `ERC721Proxy` is not approved to perform the transfer.
+
+### MultiAssetProxy
+
+The `MultiAssetProxy` expects an `amounts` (`uint256` array) and a `nestedAssetData` (array of [`asseData`](#assetdata) byte arrays) to be encoded within its own `assetData`. Each element of `amounts` corresponds to an element at the same index of `nestedAssetData`. The `MultiAssetProxy` will multiply each `amounts` element by the `amount` passed into `MultiAssetProxy.transferFrom` and then dispatch the corresponding element of `nestedAssetProxy` to the relevant [`AssetProxy`](#assetproxy) contract with the resulting `totalAmount`. This contract does not perform any `transferFrom` calls to assets directly and therefore does not require any additional user approvals.
+
+This contract expects its `assetData` to be encoded using [ABIv2](http://solidity.readthedocs.io/en/latest/abi-spec.html) with the following 4 byte id:
+
+```
+// 0x94cfcdd7
+MultiAsset(uint256[],bytes[])
+```
+
+The data is then encoded as:
+
+| Offset   | Length | Contents                                |
+| -------- | ------ | --------------------------------------- |
+| 0x00     | 4      | MultiAsset proxy id (always 0x94cfcdd7) |
+| 0x04     | 32     | Offset to `amounts`                     |
+| 0x24     | 32     | Offset to `nestedAssetData`             |
+| 0x44     | 32     | `amounts` length                        |
+| 0x64     | a      | `amounts` contents                      |
+| 0x84 + a | 32     | `nestedAssetData` length                |
+| 0xA4 + a | b      | `nestedAssetData` contents              |
+
+Each element of `nestedAssetData` must be encoded according to the specification of the corresponding `AssetProxy` contract. Note that initially, the `MultiAssetProxy` will not support dispatching a transfer to itself.
+
+For more information on how the `MultiAssetProxy` works at a higher level, please refer to [ZEIP23](https://github.com/0xProject/ZEIPs/issues/23).
 
 ## AssetProxyOwner
 
