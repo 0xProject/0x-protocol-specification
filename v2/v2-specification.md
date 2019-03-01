@@ -275,7 +275,7 @@ An order message consists of the following parameters:
 | ------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | makerAddress                    | address | Address that created the order.                                                                                                                 |
 | takerAddress                    | address | Address that is allowed to fill the order. If set to 0, any address is allowed to fill the order.                                               |
-| feeRecipientAddress             | address | Address that will recieve fees when order is filled.                                                                                            |
+| feeRecipientAddress             | address | Address that will receive fees when order is filled.                                                                                            |
 | [senderAddress](#senderaddress) | address | Address that is allowed to call Exchange contract methods that affect this order. If set to 0, any address is allowed to call these methods.    |
 | makerAssetAmount                | uint256 | Amount of makerAsset being offered by maker. Must be greater than 0.                                                                            |
 | takerAssetAmount                | uint256 | Amount of takerAsset being bid on by maker. Must be greater than 0.                                                                             |
@@ -295,7 +295,7 @@ If the `senderAddress` of an order is not set to 0, only that address may call [
 An order's `salt` parameter has two main usecases:
 
 - To ensure uniqueness within an order's hash.
-- To be used in combination with [`cancelOrdersUpTo`](#cancelordersupto). When creating an order, the `salt` value _should_ be equal to the value of the current timestamp in milliseconds. This allows maker to create 1000 orders with the same parameters per second. Note that although this is part of the protocol specification, there is currently no way to enforce this usage and `salt` values should _not_ be relied upon as a surce of truth.
+- To be used in combination with [`cancelOrdersUpTo`](#cancelordersupto). When creating an order, the `salt` value _should_ be equal to the value of the current timestamp in milliseconds. This allows maker to create 1000 orders with the same parameters per second. Note that although this is part of the protocol specification, there is currently no way to enforce this usage and `salt` values should _not_ be relied upon as a source of truth.
 
 ### assetData
 
@@ -580,7 +580,7 @@ Two orders that represent a bid and an ask for the same token pair may be matche
 (leftOrder.makerAssetAmount * rightOrder.makerAssetAmount) >= (leftOrder.takerAssetAmount * rightOrder.takerAssetAmount)
 ```
 
-The caller of `matchOrders` is considered the taker for each order. The taker will pay the `takerFee` for each order, but will also recieve the spread between both orders. The spread is always denominated in terms of the left order's makerAsset. No balance is required in order to call `matchOrders`, and the taker never holds intermediate balances of either asset.
+The caller of `matchOrders` is considered the taker for each order. The taker will pay the `takerFee` for each order, but will also receive the spread between both orders. The spread is always denominated in terms of the left order's makerAsset. No balance is required in order to call `matchOrders`, and the taker never holds intermediate balances of either asset.
 
 `matchOrders` will revert if either order fails the validation checks for [fillOrder](#fillOrder). Note that `matchOrders` assumes that `rightOrder.makerAssetData == leftOrder.takerAssetData` and `rightOrder.takerAssetData == leftOrder.makerAssetData`, allowing null byte arrays to be passed in for both assetData fields of `rightOrder`. If other assetData fields were part of the original `rightOrder`, this function will fail when validating the signature of the `rightOrder`.
 
@@ -1203,7 +1203,7 @@ A `Cancel` event is emitted whenever an individual order is cancelled.
 ```
 event Cancel(
     address indexed makerAddress,         // Address that created the order.
-    address indexed feeRecipientAddress,  // Address that would have recieved fees if order was filled.
+    address indexed feeRecipientAddress,  // Address that would have received fees if order was filled.
     address senderAddress,                // Address that called the Exchange contract (msg.sender).
     bytes32 indexed orderHash,            // EIP712 hash of order (see LibOrder.getOrderHash).
     bytes makerAssetData,                 // Encoded data specific to makerAsset.
@@ -1312,7 +1312,7 @@ event ConfirmationTimeSet(
 struct Order {
     address makerAddress;           // Address that created the order.
     address takerAddress;           // Address that is allowed to fill the order. If set to 0, any address is allowed to fill the order.
-    address feeRecipientAddress;    // Address that will recieve fees when order is filled.
+    address feeRecipientAddress;    // Address that will receive fees when order is filled.
     address senderAddress;          // Address that is allowed to call Exchange contract methods that affect this order. If set to 0, any address is allowed to call these methods.
     uint256 makerAssetAmount;       // Amount of makerAsset being offered by maker. Must be greater than 0.
     uint256 takerAssetAmount;       // Amount of takerAsset being bid on by maker. Must be greater than 0.
