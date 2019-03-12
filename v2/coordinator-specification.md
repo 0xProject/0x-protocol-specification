@@ -11,7 +11,6 @@ TODO
 - Overview
 - Step-by-step of filling a Coordinator order
 - Contract logic
-- SCA
 
 # Contracts
 
@@ -26,6 +25,42 @@ In order to ensure that trading clients know how to successfully request a signa
 TODO
 
 ## Rest API
+
+### Network Id
+
+All requests should be able to specify a **?networkId** query param for all supported networks. For example:
+
+```
+curl https://api.coordinator.com/v1/request_transaction?networkId=1
+```
+
+If the query param is not provided, it should default to **1** (mainnet).
+
+Some networks and their Ids:
+
+| Network Id | Network Name        |
+| ---------- | ------------------- |
+| 1          | Mainnet             |
+| 42         | Kovan               |
+| 3          | Ropsten             |
+| 4          | Rinkeby             |
+| 50         | 0x Ganache snapshot |
+
+If a certain network is not supported, the response should **400** as specified in the [error response](#error-response) section. For example:
+
+```
+{
+    "code": 100,
+    "reason": "Validation failed",
+    "validationErrors": [
+        {
+            "field": "networkId",
+            "code": 1006,
+            "reason": "Network id 42 is not supported",
+        }
+    ]
+}
+```
 
 ### POST /v1/request_transaction
 
