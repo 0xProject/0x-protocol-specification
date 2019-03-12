@@ -22,7 +22,54 @@ In order to ensure that trading clients know how to successfully request a signa
 
 ## Errors
 
-TODO
+Unless the spec defines otherwise, errors to bad requests should respond with HTTP 4xx or status codes.
+
+### Common error codes
+
+| Code | Reason                               |
+| ---- | ------------------------------------ |
+| 400  | Bad Request – Invalid request format |
+| 404  | Not found                            |
+| 500  | Internal Server Error                |
+
+### Error reporting format
+
+```
+{
+    "code": 101,
+    "reason": "Validation failed",
+    "validationErrors": [
+        {
+            "field": "networkId",
+            "code": 1003,
+            "reason": "Requested networkId not supported by this coordinator"
+        }
+    ]
+}
+```
+
+General error codes:
+
+```
+100 - Validation Failed
+101 - Malformed JSON
+```
+
+Validation error codes:
+
+```
+1000 - Required field
+1001 - Incorrect format
+1004 - Value out of range
+1003 - Unsupported option
+1004 - Included order already soft-cancelled
+1005 - 0x transaction decoding failed
+1006 - No coordinator orders included
+1007 - Invalid 0x transaction signature
+1008 - Only maker can cancel orders
+1009 - Function call unsupported
+1010 - Fill requests exceeded takerAssetAmount
+```
 
 ## Rest API
 
@@ -31,7 +78,9 @@ TODO
 All requests should be able to specify a **?networkId** query param for all supported networks. For example:
 
 ```
+
 curl https://api.coordinator.com/v1/request_transaction?networkId=1
+
 ```
 
 If the query param is not provided, it should default to **1** (mainnet).
@@ -49,17 +98,19 @@ Some networks and their Ids:
 If a certain network is not supported, the response should **400** as specified in the [error response](#error-response) section. For example:
 
 ```
+
 {
-    "code": 100,
-    "reason": "Validation failed",
-    "validationErrors": [
-        {
-            "field": "networkId",
-            "code": 1006,
-            "reason": "Network id 42 is not supported",
-        }
-    ]
+"code": 100,
+"reason": "Validation failed",
+"validationErrors": [
+{
+"field": "networkId",
+"code": 1006,
+"reason": "Network id 42 is not supported",
 }
+]
+}
+
 ```
 
 ### POST /v1/request_transaction
