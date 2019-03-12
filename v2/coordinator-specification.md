@@ -105,7 +105,7 @@ A fill request was received and is valid. The request has not yet been granted a
   "type": "FILL_REQUEST_RECEIVED",
   "data": {
     "functionName": "fillOrder",
-    "ordersWithoutExchangeAddress": [
+    "orders": [
       {
         "makerAddress": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
         "takerAddress": "0x0000000000000000000000000000000000000000",
@@ -118,7 +118,8 @@ A fill request was received and is valid. The request has not yet been granted a
         "expirationTimeSeconds": "1552396423",
         "salt": "66097384406870180066678463045003379626790660770396923976862707230261946348951",
         "makerAssetData": "0xf47261b000000000000000000000000034d402f14d58e001d8efbe6585051bf9706aa064",
-        "takerAssetData": "0xf47261b000000000000000000000000025b8fe1de9daf8ba351890744ff28cf7dfa8f5e3"
+        "takerAssetData": "0xf47261b000000000000000000000000025b8fe1de9daf8ba351890744ff28cf7dfa8f5e3",
+        "exchangeAddress": "0x4f833a24e1f95d70f028921e27040ca56e09ab0b"
       }
     ],
     "zeroExTransaction": {
@@ -142,7 +143,7 @@ The fill request has been accepted and a signature issued. The corresponding 0x 
   "type": "FILL_REQUEST_ACCEPTED",
   "data": {
     "functionName": "fillOrder",
-    "ordersWithoutExchangeAddress": [
+    "orders": [
       {
         "makerAddress": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
         "takerAddress": "0x0000000000000000000000000000000000000000",
@@ -155,7 +156,8 @@ The fill request has been accepted and a signature issued. The corresponding 0x 
         "expirationTimeSeconds": "1552396423",
         "salt": "66097384406870180066678463045003379626790660770396923976862707230261946348951",
         "makerAssetData": "0xf47261b000000000000000000000000034d402f14d58e001d8efbe6585051bf9706aa064",
-        "takerAssetData": "0xf47261b000000000000000000000000025b8fe1de9daf8ba351890744ff28cf7dfa8f5e3"
+        "takerAssetData": "0xf47261b000000000000000000000000025b8fe1de9daf8ba351890744ff28cf7dfa8f5e3",
+        "exchangeAddress": "0x4f833a24e1f95d70f028921e27040ca56e09ab0b"
       }
     ],
     "zeroExTransaction": {
@@ -180,7 +182,7 @@ A cancellation request has been recevied and processed. The 0x orders included i
 {
   "type": "CANCEL_REQUEST_ACCEPTED",
   "data": {
-    "ordersWithoutExchangeAddress": [
+    "orders": [
       {
         "makerAddress": "0xe36ea790bc9d7ab70c55260c66d52b1eca985f84",
         "takerAddress": "0x0000000000000000000000000000000000000000",
@@ -193,7 +195,8 @@ A cancellation request has been recevied and processed. The 0x orders included i
         "expirationTimeSeconds": "1552396423",
         "salt": "77312126688742331532122416049113540452139616608135326468253415920865328290216",
         "makerAssetData": "0xf47261b000000000000000000000000034d402f14d58e001d8efbe6585051bf9706aa064",
-        "takerAssetData": "0xf47261b000000000000000000000000025b8fe1de9daf8ba351890744ff28cf7dfa8f5e3"
+        "takerAssetData": "0xf47261b000000000000000000000000025b8fe1de9daf8ba351890744ff28cf7dfa8f5e3",
+        "exchangeAddress": "0x4f833a24e1f95d70f028921e27040ca56e09ab0b"
       }
     ],
     "zeroExTransaction": {
