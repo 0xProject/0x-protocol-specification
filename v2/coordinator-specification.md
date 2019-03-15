@@ -148,12 +148,12 @@ Submit a signed 0x transaction encoding either a 0x fill or cancellation. If the
   "signatures": [
     "0x1cc07d7ae39679690a91418d46491520f058e4fb14debdf2e98f2376b3970de8512ace44af0be6d1c65617f7aae8c2364ff63f241515ee1559c3eeecb0f671d9e903"
   ],
-  "expirationsTimeSeconds": [1552390014]
+  "expirationTimeSeconds": 1552390014
 }
 ```
 
 - `signatures` - the coordinator signatures required to submit the 0x transaction
-- `expirationsTimeSeconds` - when the signatures will expire and no longer be valid
+- `expirationTimeSeconds` - when the signatures will expire and no longer be valid
 
 Usually a single signature will be returned. Only when someone requests to batchFill multiple orders from the coordinator that were created with different supported feeRecipientAddresses, will this return a signature per feeRecipientAddress involved.
 
@@ -166,7 +166,9 @@ Usually a single signature will be returned. Only when someone requests to batch
   "outstandingSignatures": [
     {
       "orderHash": "0xd1dc61f3e7e5f41d72beae7863487beea108971de678ca00d903756f842ef3ce",
-      "coordinatorSignature": "0x1c7383ca8ebd6de8b5b20b1c2d49bea166df7dfe4af1932c9c52ec07334e859cf2176901da35f4480ceb3ab63d8d0339d851c31929c40d88752689b9a8a535671303",
+      "coordinatorSignatures": [
+        "0x1c7383ca8ebd6de8b5b20b1c2d49bea166df7dfe4af1932c9c52ec07334e859cf2176901da35f4480ceb3ab63d8d0339d851c31929c40d88752689b9a8a535671303"
+      ],
       "expirationTimeSeconds": 1552390380,
       "takerAssetFillAmount": "100000000000000000000"
     }
@@ -259,7 +261,7 @@ The fill request has been accepted and a signature issued. The corresponding 0x 
     "coordinatorSignatures": [
       "0x1b98e8b81249e49de6a76ae515108215621a2ad85909580de16a960280c97830eb2b417c7675775dc1ccaeca596deee5c8a0613058a48649e9b0ee2696b0cb975703"
     ],
-    "coordinatorSignatureExpirations": [1552395894]
+    "coordinatorSignatureExpiration": 1552395894
   }
 }
 ```
