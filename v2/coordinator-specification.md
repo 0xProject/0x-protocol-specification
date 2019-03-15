@@ -53,6 +53,7 @@ General error codes:
 ```
 100 - Validation Failed
 101 - Malformed JSON
+102 - Request blocked
 ```
 
 Validation error codes:
