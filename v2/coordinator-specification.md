@@ -97,8 +97,7 @@ Some networks and their Ids:
 
 If a certain network is not supported, the response should **400** as specified in the [error response](#error-response) section. For example:
 
-```
-
+```json
 {
 "code": 100,
 "reason": "Validation failed",
@@ -106,11 +105,10 @@ If a certain network is not supported, the response should **400** as specified 
 {
 "field": "networkId",
 "code": 1006,
-"reason": "Network id 42 is not supported",
+      "reason": "Network id 42 is not supported"
 }
 ]
 }
-
 ```
 
 ### POST /v1/request_transaction
