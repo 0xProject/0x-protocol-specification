@@ -1,20 +1,361 @@
+# 0x 2.0.0 Coordinator Specification
+
 1.  [Architecture](#architecture)
+1.  [Message Types](#message-types)
+    1. [Orders](#orders)
+    1. [Transactions](#transactions)
+    1. [Approvals](#approvals)
 1.  [Contracts](#contracts)
     1.  [Coordinator](#coordinator)
     1.  [CoordinatorRegistry](#coordinator)
+1.  [Signature Types](#signature-types)
+1.  [Events](#events)
+1.  [Types](#types)
 1.  [Standard Coordinator API](#standard-coordinator-api)
+1.  [Reference Coordinator Server](#reference-coordinator-server)
 
 # Architecture
 
-TODO
+[0x version 2.0]() introduced the concept of [0x transactions](TODO) as a new way to interact with the [Exchange contract](TODO). 0x transactions allow external accounts or contracts to execute Exchange methods in the context of the transaction signer, which makes it possible to add custom logic to the execution of trades or cancels.
 
-- Overview
-- Step-by-step of filling a Coordinator order
-- Contract logic
+The coordinator model makes heavy use of this concept in order to add an additional layer of verification to Exchange contract interactions. An order may specify a single coordinator's address that is responsible for approving any fills of the order. The coordinator can set custom rules that may be used to prevent trade collisions, enable free and instant cancels, or add time delays to filling order.
+
+A coordinator has 2 components that differentiate it from a traditional relayer:
+
+1. A [0x extension contract](TODO) that verifies transactions have been approved by the correct set of coordinators
+1. A coordinator server that approves or rejects 0x transactions under different conditions
+
+This specification will describe a specific implementation of each component that intends to create a market structure with the following goals:
+
+- Create a more favorable environment for liquidity providers
+- Allow for liquidity to be consumed by smart contracts
+
+* Image of tx -> request -> approval -> submission
+
+# Message Types
+
+## Orders
+
+The [Coordinator contract](#coordinator) is compatible with orders where the [`senderAddress`](TODO) is equal to the address of this contract or the null address. If an order's `senderAddress` is null, that order may be filled or cancelled through the Coordinator contract or directly through the Exchange contract. For a full specification of the order schema, please see the [orders section](TODO) of the 0x 2.0 specification.
+
+For the purposes of this specification, orders that specify the Coordinator contract as the `senderAddress` will be referred to as "Coordinator orders".
+
+## Transactions
+
+The Coordinator contract processes regular [0x transaction](TODO) messages, using the Exchange 2.0 EIP712 domain header (see the Solidity type [here](#zeroextransaction)). Transactions may be signed with any valid [0x 2.0 signature type](TODO).
+
+## Approvals
+
+0x transactions that call any Exchange fill methods must be approved by a coordinator. The approval includes the following fields (see the Solidity type [here](#coordinatorapproval)):
+
+| Parameter                     | Type    | Description                                                                           |
+| ----------------------------- | ------- | ------------------------------------------------------------------------------------- |
+| txOrigin                      | address | Address of Ethereum transaction signer that is allowed to execute this 0x transaction |
+| transactionHash               | bytes32 | EIP712 hash of the 0x transaction.                                                    |
+| transactionSignature          | bytes   | Signature of 0x transaction.                                                          |
+| approvalExpirationTimeSeconds | uint256 | Timestamp in seconds for which the approval expires.                                  |
+
+The hash of an approval can be calculated with:
+
+```
+// EIP191 header for EIP712 prefix
+string constant internal EIP191_HEADER = "\x19\x01";
+
+// EIP712 Domain Name value for the Coordinator
+string constant internal EIP712_COORDINATOR_DOMAIN_NAME = "0x Protocol Coordinator";
+
+// EIP712 Domain Version value for the Coordinator
+string constant internal EIP712_COORDINATOR_DOMAIN_VERSION = "1.0.0";
+
+// Hash of the EIP712 Domain Separator Schema
+bytes32 constant internal EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH = keccak256(abi.encodePacked(
+    "EIP712Domain(",
+    "string name,",
+    "string version,",
+    "address verifyingContract",
+    ")"
+));
+
+// Hash for the EIP712 Coordinator approval message
+bytes32 constant internal EIP712_COORDINATOR_APPROVAL_SCHEMA_HASH = keccak256(abi.encodePacked(
+    "CoordinatorApproval(",
+    "address txOrigin,",
+    "bytes32 transactionHash,",
+    "bytes transactionSignature,",
+    "uint256 approvalExpirationTimeSeconds",
+    ")"
+));
+
+bytes32 EIP712_COORDINATOR_DOMAIN_HASH = keccak256(abi.encodePacked(
+    EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH,
+    keccak256(bytes(EIP712_COORDINATOR_DOMAIN_NAME)),
+    keccak256(bytes(EIP712_COORDINATOR_DOMAIN_VERSION)),
+    uint256(address(this))
+));
+
+bytes32 hashStruct = keccak256(abi.encodePacked(
+    EIP712_COORDINATOR_APPROVAL_SCHEMA_HASH,
+    approval.txOrigin,
+    approval.transactionHash,
+    keccak256(approval.transactionSignature)
+    approval.approvalExpirationTimeSeconds,
+));
+
+bytes32 approvalHash = keccak256(abi.encodePacked(
+    EIP191_HEADER,
+    EIP712_COORDINATOR_DOMAIN_HASH,
+    hashStruct
+));
+
+```
+
+The hash of an approval must be signed by a coordinator in order for the approval to be valid. See the [signature types](#signature-types) section for more information on creating valid signatures.
 
 # Contracts
 
-TODO
+## Coordinator
+
+The Coordinator contract is the single entry point for executing transactions relevant to Coordinator orders.
+
+### executeTransaction
+
+The Coordinator contract contains a single function that is allowed to execute approved transactions and alter blockchain state.
+
+When interacting with Coordinator orders, the following Exchange methods must be called through `executeTransaction` on the Coordinator contract:
+
+| Method                            | Coordinator approval required |
+| --------------------------------- | ----------------------------- |
+| [`fillOrder`](TODO)               | Yes                           |
+| [`fillOrKillOrder`](TODO)         | Yes                           |
+| [`fillOrderNoThrow`](TODO)        | Yes                           |
+| [`batchFillOrders`](TODO)         | Yes                           |
+| [`batchFillOrKillOrders`](TODO)   | Yes                           |
+| [`batchFillOrdersNoThrow`](TODO)  | Yes                           |
+| [`marketBuyOrders`](TODO)         | Yes                           |
+| [`marketBuyOrdersNoThrow`](TODO)  | Yes                           |
+| [`marketSellOrders`](TODO)        | Yes                           |
+| [`marketSellOrdersNoThrow`](TODO) | Yes                           |
+| [`matchOrders`](TODO)             | Yes                           |
+| [`cancelOrder`](TODO)             | No                            |
+| [`batchCancelOrders`](TODO)       | No                            |
+| [`cancelOrdersUpTo`](TODO)        | No                            |
+
+`executeTransaction` will revert under the following conditions:
+
+- The `tx.origin` (Ethereum transaction signer) differs from the passed in `txOrigin` parameter.
+- Any of the Coordinator orders include a `feeRecipientAddress` that do not have a corresponding valid signature in `approvalSignatures`.
+- Any of the values in `approvalExpirationTimeSeconds` are less than or equal to the timestamp of the block in which this transaction is mined.
+- Each item in `approvalSignatures` does not have a corresponding item in `approvalExpirationTimeSeconds`.
+- The Exchange function call in `transaction.data` reverts for any reason.
+
+```
+/// @dev Executes a 0x transaction that has been signed by the feeRecipients that correspond to each order in the transaction's Exchange calldata.
+/// @param transaction 0x transaction containing salt, signerAddress, and data.
+/// @param txOrigin Required signer of Ethereum transaction calling this function.
+/// @param transactionSignature Proof that the transaction has been signed by the signer.
+/// @param approvalExpirationTimeSeconds Array of expiration times in seconds for which each corresponding approval signature expires.
+/// @param approvalSignatures Array of signatures that correspond to the feeRecipients of each order in the transaction's Exchange calldata.
+function executeTransaction(
+    LibZeroExTransaction.ZeroExTransaction memory transaction,
+    address txOrigin,
+    bytes memory transactionSignature,
+    uint256[] memory approvalExpirationTimeSeconds,
+    bytes[] memory approvalSignatures
+)
+    public;
+```
+
+### assertValidCoordinatorApprovals
+
+`assertValidCoordinatorApprovals` is a read-only helper function used for validating transaction approvals. Note that this function cannot detect failures that would occur when the 0x transaction is being executed by the Exchange contract.
+
+```
+/// @dev Validates that the 0x transaction has been approved by all of the feeRecipients
+///      that correspond to each order in the transaction's Exchange calldata.
+/// @param transaction 0x transaction containing salt, signerAddress, and data.
+/// @param txOrigin Required signer of Ethereum transaction calling this function.
+/// @param transactionSignature Proof that the transaction has been signed by the signer.
+/// @param approvalExpirationTimeSeconds Array of expiration times in seconds for which each corresponding approval signature expires.
+/// @param approvalSignatures Array of signatures that correspond to the feeRecipients of each order in the transaction's Exchange calldata.
+function assertValidCoordinatorApprovals(
+    LibZeroExTransaction.ZeroExTransaction memory transaction,
+    address txOrigin,
+    bytes memory transactionSignature,
+    uint256[] memory approvalExpirationTimeSeconds,
+    bytes[] memory approvalSignatures
+)
+    public
+    view;
+```
+
+### getSignerAddress
+
+`getSignerAddress` is a read-only helper function used to recover a coordinator's address from it's signature.
+
+```
+/// @dev Recovers the address of a signer given a hash and signature.
+/// @param hash Any 32 byte hash.
+/// @param signature Proof that the hash has been signed by signer.
+function getSignerAddress(bytes32 hash, bytes memory signature)
+    public
+    pure
+    returns (address signerAddress);
+```
+
+### getTransactionHash
+
+`getTransactionHash` is a read-only helper function that is used to calculate the hash of a 0x transaction.
+
+```
+    /// @dev Calculates the EIP712 hash of a 0x transaction using the domain separator of the Exchange contract.
+    /// @param transaction 0x transaction containing salt, signerAddress, and data.
+    /// @return EIP712 hash of the transaction with the domain separator of this contract.
+    function getTransactionHash(ZeroExTransaction memory transaction)
+        public
+        view
+        returns (bytes32 transactionHash)
+```
+
+### getCoordinatorApprovalHash
+
+`getCoordinatorApprovalHash` is a read-only helper function that is used to calculate the hash of a coordinator's approval.
+
+```
+/// @dev Calculated the EIP712 hash of the Coordinator approval mesasage using the domain separator of this contract.
+/// @param approval Coordinator approval message containing the transaction hash, transaction signature, and expiration of the approval.
+/// @return EIP712 hash of the Coordinator approval message with the domain separator of this contract.
+function getCoordinatorApprovalHash(CoordinatorApproval memory approval)
+    public
+    view
+    returns (bytes32 approvalHash);
+```
+
+### decodeOrdersFromFillData
+
+`decodeOrdersFromFillData` is a read-only helper function that is used to decode orders from any Exchange calldata that utilizes a fill function (such as a 0x transaction's data). Note this function will always return an empty array if invalid data or data from a non-fill function is passed in (such as a cancel function).
+
+```
+/// @dev Decodes the orders from Exchange calldata representing any fill method.
+/// @param data Exchange calldata representing a fill method.
+/// @return The orders from the Exchange calldata.
+function decodeOrdersFromFillData(bytes memory data)
+    public
+    pure
+    returns (LibOrder.Order[] memory orders);
+```
+
+## CoordinatorRegistry
+
+The CoordinatorRegistry contract allows coordinators to register their [Standard Coordinator API](standard-coordinator-api) endpoints in a central contract for greater discoverability.
+
+### setCoordinatorEndpoint
+
+`setCoordinatorEndpoint` registers an endpoint string to the address of the sender.
+
+```
+/// @dev Called by a Coordinator operator to set the endpoint of their Coordinator.
+/// @param coordinatorEndpoint endpoint of the Coordinator.
+function setCoordinatorEndpoint(string calldata coordinatorEndpoint)
+    external;
+```
+
+### getCoordinatorEndpoint
+
+`getCoordinatorEndpoint` is a read-only function that retrieves the endpoint of a coordinator.
+
+```
+/// @dev Gets the endpoint for a Coordinator.
+/// @param coordinatorOperator operator of the Coordinator endpoint.
+function getCoordinatorEndpoint(address coordinatorOperator)
+    external
+    view
+    returns (string memory coordinatorEndpoint);
+```
+
+# Signature Types
+
+All signatures submitted to the Coordinator contract are represented as a byte array of arbitrary length, where the last byte (the "signature byte") specifies the signatures type. The signature type is popped from the signature byte array before validation. The allowed coordinator signature types are symmetric to the [Exchange signature types](TODO), but do not include `Wallet`, `Validator`, and `PreSigned` types. The following signature types are supported:
+
+| Signature byte | Signature type      |
+| -------------- | ------------------- |
+| 0x00           | [Illegal](#illegal) |
+| 0x01           | [Invalid](#invalid) |
+| 0x02           | [EIP712](#eip712)   |
+| 0x03           | [EthSign](#ethsign) |
+
+## Illegal
+
+The is the default value of the signature byte. A transaction that includes an `Illegal` signature will be reverted. Therefore, users must explicitly specify a valid signature type.
+
+## Invalid
+
+An `Invalid` signature will always revert, much like the `Illegal` type. An invalid signature can always be recreated and is therefore offered explicitly. This signature type is largely used for testing purposes and to create symmetry with the Exchange signature types.
+
+## EIP712
+
+An `EIP712` signature is considered valid if the address recovered from calling [`ecrecover`]() with the given hash and decoded `v`, `r`, `s` values is the same as the specified signer. In this case, the signature is encoded in the following way:
+
+| Offset | Length | Contents            |
+| ------ | ------ | ------------------- |
+| 0x00   | 1      | v (always 27 or 28) |
+| 0x01   | 32     | r                   |
+| 0x21   | 32     | s                   |
+
+## EthSign
+
+An `EthSign` signature is considered valid if the address recovered from calling [`ecrecover`]() with the an EthSign-prefixed hash and decoded `v`, `r`, `s` values is the same as the specified signer.
+
+The prefixed `msgHash` is calculated with:
+
+```
+string constant ETH_PERSONAL_MESSAGE = "\x19Ethereum Signed Message:\n32";
+bytes32 msgHash = keccak256(abi.encodePacked(ETH_PERSONAL_MESSAGE, hash));
+```
+
+`v`, `r`, and `s` are encoded in the signature byte array using the same scheme as [EIP712 signatures]().
+
+# Events
+
+## Coordinator events
+
+No events are emitted by the Coordinator contract. However, orders filled through the Coordinator contract can be detected by filtering the Exchange contracts events for a `senderAddress` that matches the Coordinator contract's address.
+
+## CoordinatorRegistry events
+
+### CoordinatorEndpointSet
+
+A `CoordinatorEndpointSet` event is emitted when a coordinator endpoint is set.
+
+```
+/// @dev Emitted when a Coordinator endpoint is set.
+event CoordinatorEndpointSet(
+    address coordinatorOperator,
+    string coordinatorEndpoint
+);
+```
+
+# Types
+
+## ZeroExTransaction
+
+```
+struct ZeroExTransaction {
+    uint256 salt;           // Arbitrary number to ensure uniqueness of transaction hash.
+    address signerAddress;  // Address of transaction signer.
+    bytes data;             // AbiV2 encoded calldata.
+}
+```
+
+## CoordinatorApproval
+
+```
+struct CoordinatorApproval {
+    address txOrigin;                       // Required signer of Ethereum transaction that is submitting approval.
+    bytes32 transactionHash;                // EIP712 hash of the transaction, using the Exchange contract's domain separator.
+    bytes transactionSignature;             // Signature of the 0x transaction.
+    uint256 approvalExpirationTimeSeconds;  // Timestamp in seconds for which the approval expires.
+}
+```
 
 # Standard Coordinator API
 
@@ -97,20 +438,18 @@ Some networks and their Ids:
 
 If a certain network is not supported, the response should **400** as specified in the [error response](#error-response) section. For example:
 
-```
-
+```json
 {
-"code": 100,
-"reason": "Validation failed",
-"validationErrors": [
-{
-"field": "networkId",
-"code": 1006,
-"reason": "Network id 42 is not supported",
+  "code": 100,
+  "reason": "Validation failed",
+  "validationErrors": [
+    {
+      "field": "networkId",
+      "code": 1006,
+      "reason": "Network id 42 is not supported"
+    }
+  ]
 }
-]
-}
-
 ```
 
 ### POST /v1/request_transaction
@@ -300,3 +639,5 @@ A cancellation request has been recevied and processed. The 0x orders included i
   }
 }
 ```
+
+# Reference Coordinator Server
