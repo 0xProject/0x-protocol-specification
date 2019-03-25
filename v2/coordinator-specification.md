@@ -16,33 +16,36 @@
 
 # Architecture
 
-[0x version 2.0]() introduced the concept of [0x transactions](TODO) as a new way to interact with the [Exchange contract](TODO). 0x transactions allow external accounts or contracts to execute Exchange methods in the context of the transaction signer, which makes it possible to add custom logic to the execution of trades or cancels.
+[0x version 2.0](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md) introduced the concept of [0x transactions](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md#transactions) as a new way to interact with the [Exchange contract](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md#exchange). 0x transactions allow external accounts or contracts to execute Exchange methods in the context of the transaction signer, which makes it possible to add custom logic to the execution of trades or cancels.
 
 The coordinator model makes heavy use of this concept in order to add an additional layer of verification to Exchange contract interactions. An order may specify a single coordinator's address that is responsible for approving any fills of the order. The coordinator can set custom rules that may be used to prevent trade collisions, enable free and instant cancels, or add time delays to filling order.
 
 A coordinator has 2 components that differentiate it from a traditional relayer:
 
-1. A [0x extension contract](TODO) that verifies transactions have been approved by the correct set of coordinators
-1. A coordinator server that approves or rejects 0x transactions under different conditions
+1. The [Coordinator contract](#coordinator), which is a [0x extension contract](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md#filter-contracts) that verifies transactions have been approved by the correct set of coordinators.
+1. A [coordinator server](#reference-coordinator-server) that approves or rejects 0x transactions under different conditions.
 
-This specification will describe a specific implementation of each component that intends to create a market structure with the following goals:
+This specification will describe a specific implementation of each component that intends to create a market structure that is more favorable for liquidity providers and allows for liquidity to be consumed by smart contracts. The flow for filling an order with the coordinator model is as follows:
 
-- Create a more favorable environment for liquidity providers
-- Allow for liquidity to be consumed by smart contracts
+1. A taker selects the order(s) and creates a valid signed 0x transaction to fill the order(s) (e.g. `batchFillOrdersNoThrow`).
+2. The taker sends a fill request with the signed 0x transaction to the coordinator server that corresponds to each order.
+3. After a 1 second delay, the coordinator server responds with a signed approval.
+4. The taker submits the signed 0x transaction and approval to the `Coordinator` contract by calling `Coordinator.executeTransaction`.
+5. The `Coordinator` contract verifies that the approval is valid and executes the 0x transaction by calling `Exchange.executeTransaction`.
 
-* Image of tx -> request -> approval -> submission
+TODO: \* Image of above flow
 
 # Message Types
 
 ## Orders
 
-The [Coordinator contract](#coordinator) is compatible with orders where the [`senderAddress`](TODO) is equal to the address of this contract or the null address. If an order's `senderAddress` is null, that order may be filled or cancelled through the Coordinator contract or directly through the Exchange contract. For a full specification of the order schema, please see the [orders section](TODO) of the 0x 2.0 specification.
+The [Coordinator contract](#coordinator) is compatible with orders where the [`senderAddress`](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md#senderaddress) is equal to the address of this contract or the null address. If an order's `senderAddress` is null, that order may be filled or cancelled through the Coordinator contract or directly through the Exchange contract. For a full specification of the order schema, please see the [orders section](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md#orders) of the 0x 2.0 specification.
 
-For the purposes of this specification, orders that specify the Coordinator contract as the `senderAddress` will be referred to as "Coordinator orders".
+For the purposes of this specification, orders that specify the `Coordinator` contract as the `senderAddress` will be referred to as "coordinator orders".
 
 ## Transactions
 
-The Coordinator contract processes regular [0x transaction](TODO) messages, using the Exchange 2.0 EIP712 domain header (see the Solidity type [here](#zeroextransaction)). Transactions may be signed with any valid [0x 2.0 signature type](TODO).
+The `Coordinator` contract processes regular [0x transaction](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md#transactions) messages, using the Exchange 2.0 EIP712 domain header (see the Solidity type [here](#zeroextransaction)). Transactions may be signed with any valid [0x 2.0 signature type](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md#signature-types).
 
 ## Approvals
 
@@ -123,22 +126,22 @@ The Coordinator contract contains a single function that is allowed to execute a
 
 When interacting with Coordinator orders, the following Exchange methods must be called through `executeTransaction` on the Coordinator contract:
 
-| Method                            | Coordinator approval required |
-| --------------------------------- | ----------------------------- |
-| [`fillOrder`](TODO)               | Yes                           |
-| [`fillOrKillOrder`](TODO)         | Yes                           |
-| [`fillOrderNoThrow`](TODO)        | Yes                           |
-| [`batchFillOrders`](TODO)         | Yes                           |
-| [`batchFillOrKillOrders`](TODO)   | Yes                           |
-| [`batchFillOrdersNoThrow`](TODO)  | Yes                           |
-| [`marketBuyOrders`](TODO)         | Yes                           |
-| [`marketBuyOrdersNoThrow`](TODO)  | Yes                           |
-| [`marketSellOrders`](TODO)        | Yes                           |
-| [`marketSellOrdersNoThrow`](TODO) | Yes                           |
-| [`matchOrders`](TODO)             | Yes                           |
-| [`cancelOrder`](TODO)             | No                            |
-| [`batchCancelOrders`](TODO)       | No                            |
-| [`cancelOrdersUpTo`](TODO)        | No                            |
+| Method                                                                                                                                         | Coordinator approval required |
+| ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| [`fillOrder`](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md#fillorder)                             | Yes                           |
+| [`fillOrKillOrder`](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md#fillorkillorder)                 | Yes                           |
+| [`fillOrderNoThrow`](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md#fillordernothrow)               | Yes                           |
+| [`batchFillOrders`](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md#batchfillorders)                 | Yes                           |
+| [`batchFillOrKillOrders`](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md#batchfillorkillorders)     | Yes                           |
+| [`batchFillOrdersNoThrow`](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md#batchfillordersnothrow)   | Yes                           |
+| [`marketBuyOrders`](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md#marketbuyorders)                 | Yes                           |
+| [`marketBuyOrdersNoThrow`](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md#marketbuyordersnothrow)   | Yes                           |
+| [`marketSellOrders`](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md#marketsellorders)               | Yes                           |
+| [`marketSellOrdersNoThrow`](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md#marketsellordersnothrow) | Yes                           |
+| [`matchOrders`](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md#matchorders)                         | Yes                           |
+| [`cancelOrder`](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md#cancelorder)                         | No                            |
+| [`batchCancelOrders`](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md#batchcancelorders)             | No                            |
+| [`cancelOrdersUpTo`](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md#cancelordersupto)               | No                            |
 
 `executeTransaction` will revert under the following conditions:
 
@@ -274,7 +277,7 @@ function getCoordinatorEndpoint(address coordinatorOperator)
 
 # Signature Types
 
-All signatures submitted to the Coordinator contract are represented as a byte array of arbitrary length, where the last byte (the "signature byte") specifies the signatures type. The signature type is popped from the signature byte array before validation. The allowed coordinator signature types are symmetric to the [Exchange signature types](TODO), but do not include `Wallet`, `Validator`, and `PreSigned` types. The following signature types are supported:
+All signatures submitted to the Coordinator contract are represented as a byte array of arbitrary length, where the last byte (the "signature byte") specifies the signatures type. The signature type is popped from the signature byte array before validation. The allowed coordinator signature types are symmetric to the [Exchange signature types](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md#signature-types), but do not include `Wallet`, `Validator`, and `PreSigned` types. The following signature types are supported:
 
 | Signature byte | Signature type      |
 | -------------- | ------------------- |
@@ -293,7 +296,7 @@ An `Invalid` signature will always revert, much like the `Illegal` type. An inva
 
 ## EIP712
 
-An `EIP712` signature is considered valid if the address recovered from calling [`ecrecover`]() with the given hash and decoded `v`, `r`, `s` values is the same as the specified signer. In this case, the signature is encoded in the following way:
+An `EIP712` signature is considered valid if the address recovered from calling [`ecrecover`](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md#ecrecover-usage) with the given hash and decoded `v`, `r`, `s` values is the same as the specified signer. In this case, the signature is encoded in the following way:
 
 | Offset | Length | Contents            |
 | ------ | ------ | ------------------- |
@@ -303,7 +306,7 @@ An `EIP712` signature is considered valid if the address recovered from calling 
 
 ## EthSign
 
-An `EthSign` signature is considered valid if the address recovered from calling [`ecrecover`]() with the an EthSign-prefixed hash and decoded `v`, `r`, `s` values is the same as the specified signer.
+An `EthSign` signature is considered valid if the address recovered from calling [`ecrecover`](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md#ecrecover-usage) with the an EthSign-prefixed hash and decoded `v`, `r`, `s` values is the same as the specified signer.
 
 The prefixed `msgHash` is calculated with:
 
@@ -312,7 +315,7 @@ string constant ETH_PERSONAL_MESSAGE = "\x19Ethereum Signed Message:\n32";
 bytes32 msgHash = keccak256(abi.encodePacked(ETH_PERSONAL_MESSAGE, hash));
 ```
 
-`v`, `r`, and `s` are encoded in the signature byte array using the same scheme as [EIP712 signatures]().
+`v`, `r`, and `s` are encoded in the signature byte array using the same scheme as [EIP712 signatures](#eip712).
 
 # Events
 
