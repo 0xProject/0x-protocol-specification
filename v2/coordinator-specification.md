@@ -461,6 +461,7 @@ Validation error codes:
 1008 - Only maker can cancel orders
 1009 - Function call unsupported
 1010 - Fill requests exceeded takerAssetAmount
+1011 - 0x transaction already used
 ```
 
 ## Rest API
