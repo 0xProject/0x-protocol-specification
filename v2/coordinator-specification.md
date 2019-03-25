@@ -11,8 +11,8 @@
 1.  [Signature Types](#signature-types)
 1.  [Events](#events)
 1.  [Types](#types)
-1.  [Standard Coordinator API](#standard-coordinator-api)
 1.  [Reference Coordinator Server](#reference-coordinator-server)
+1.  [Standard Coordinator API](#standard-coordinator-api)
 
 # Architecture
 
@@ -357,6 +357,56 @@ struct CoordinatorApproval {
 }
 ```
 
+# Reference Coordinator Server
+
+## Design choices
+
+The goals of this coordinator server implementation are to enable soft cancels and to allow for a selective delay in between fill requests and fill approvals.
+
+### Soft cancels
+
+Typically, orders may only be cancelled using an on-chain method on the Exchange contract, such as `cancelOrder` or `cancelOrdersUpTo`. However, since coordinator orders may only be filled with an approval from their corresponding coordinator, they may be "soft cancelled" if the coordinator simply refuses to accept future fill requests for that order. This allows users to cancel outstanding orders quickly and freely without any on-chain transaction. Note that users must trust that the coordinator honor their cancel request until an order has expired or been cancelled on-chain. However this process is made auditable with signed cancel receipts provided by the coordinator.
+
+### Selective delay
+
+The coordinator server adds a time delay between fill requests and approvals. This design decision has been made in order to give liquidity providers higher optionality and the ability to cancel stale orders more frequently (decreasing the chances of losing money on a trade). Simulations have show this to decrease spreads, leading to a net benefit for both providers and consumers of liquidity. Note that this should also decrease profitability of coordinator orders for arbitraguers, which should indirectly decrease the number of trade collisions.
+
+## Configuration
+
+### SELECTIVE_DELAY_MS
+
+The delay in milliseconds between the receipt of fill requests and fill approvals (default: 1000ms).
+
+### EXPIRATION_DURATION_SECONDS
+
+The amount of seconds an approval is valid for (default: 60 seconds). This parameter may be tweaked based off of the amount of congestion on the Ethereum network or the desired UX of your application. Users who are manually submitting transaction through a UI may need longer expiration times than a programmatic trader.
+
+## State
+
+The coordinator server must maintain state in order to determine the validity of transaction requests.
+
+- The server must be able to identify orders for which it has issued a cancellation receipt (e.g by storing their hashes). This information can be discarded after the order has expired or been invalidated.
+- For each order with at least one approved fill, the server must store the sum of approved `takerAssetFillAmount`s for each approved taker. This information can be discarded after the order has been filled or invalidated. Note that this information should persist even if outstanding approvals that involve the order have expired.
+- For each order with at least one approved fill, the server must store any outstanding approval signatures for fill transactions that contain the order, as well as the corresponding expiration timestamp of each approval signature.
+- The server must be able to identify transactions that it has already approved (e.g by storing its hash). This information can be discarded after the transaction has been executed, invalidated, or if the approval has expired.
+
+## Handling fills
+
+Fill transaction requests should be rejected under the following conditions:
+
+- The transaction is in any way invalid (incorrect formatting, signature, unsupported function, etc).
+- A transaction with the same hash has already been approved.
+- The taker has requested fills for an included order with total `takerAssetFillAmount`s that exceed the `takerAssetAmount` of the order. This creates a cost for requesting fills and should prevent takers from frequently requesting fills that they do not intend on executing.
+- An included order has been soft cancelled (TODO: Error response should include cancelled orders)
+
+All other fill requests must be approved by the coordinator server exactly `SELECTIVE_DELAY_MS` after the request is received (TODO: how much on-chain validation should be done?).
+
+When a valid transaction request has been received, the coordinator server must broadcast a [`FILL_REQUEST_RECEIVED`](#fill_request_received) message to all connected Websocket clients. After a duration of `SELECTIVE_DELAY_MS`, the server should approve the fill request and simultaneously broadcast a [`FILL_REQUEST_APPROVED`](#fill_request_approved) message to all connected Websocket clients (if any orders contained in the transaction have not been soft cancelled).
+
+## Handling cancels
+
+If a maker submits a valid signed 0x cancel transaction to the coordinator server (a transaction containing data for `cancelOrder` or `batchCancelOrders`), the server must no longer accept any future fill requests that contain the transaction orders. The server must respond with a signed cancel receipt (TODO: add this to spec) and simultaneously broadcast a [`CANCEL_REQUEST_ACCEPTED`](#cancel_request_accepted) message to all connected Websocket clients.
+
 # Standard Coordinator API
 
 In order to ensure that trading clients know how to successfully request a signature from your Coordinator server, it must strictly adhere to the following API specification. If it does not, you risk traders being unable to fill your orders.
@@ -525,7 +575,7 @@ The WebSocket endpoint allows a client to subscribe to the following events:
 
 #### FILL_REQUEST_RECEIVED
 
-A fill request was received and is valid. The request has not yet been granted a coordinator signature. Depending on the server implementation, the request might need to wait for a selective delay before being issued a signature.
+A fill request was received and is valid. The request has not yet been granted a coordinator signature. Depending on the server implementation, the request might need to wait for a selective delay before being issued a signature. (TODO: this should probably only broadcast the transactionHash)
 
 [See payload schema](TODO)
 
@@ -639,5 +689,3 @@ A cancellation request has been recevied and processed. The 0x orders included i
   }
 }
 ```
-
-# Reference Coordinator Server
