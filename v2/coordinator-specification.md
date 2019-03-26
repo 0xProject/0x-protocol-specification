@@ -15,7 +15,7 @@
 
 # Architecture
 
-[0x version 2.0](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md) introduced the concept of [0x transactions](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md#transactions) as a new way to interact with the [`Exchange` contract](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md#exchange). 0x transactions allow external accounts or contracts to execute Exchange methods in the context of the transaction signer, which makes it possible to add custom logic to the execution of trades or cancels.
+[0x version 2.0](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md) introduced the concept of a [0x transactions](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md#transactions), a new way to interact with the [`Exchange` contract](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md#exchange). 0x transactions allow external accounts or contracts to execute Exchange methods in the context of the transaction signer, which makes it possible to add custom logic to the execution of trades or cancels.
 
 The coordinator model makes heavy use of this concept in order to add an additional layer of verification to `Exchange` contract interactions. An order may specify a single coordinator's address that is responsible for approving any fills of the order. The coordinator can set custom rules that may be used to prevent trade collisions, enable free and instant cancels, or add time delays to filling order.
 
@@ -24,15 +24,16 @@ A coordinator has 2 components that differentiate it from a traditional relayer:
 1. The [`Coordinator` contract](#coordinator), which is a [0x extension contract](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md#filter-contracts) that verifies transactions have been approved by the correct set of coordinators.
 1. A [coordinator server](#reference-coordinator-server) that approves or rejects 0x transactions under different conditions.
 
-This specification will describe a specific implementation of each component that intends to create a market structure that is more favorable for liquidity providers and allows for liquidity to be consumed by smart contracts. The flow for filling an order with the coordinator model is as follows:
+This specification will describe a specific implementation of each component that intends to create a market structure that is more favorable for liquidity providers while allowing for liquidity to be consumed by smart contracts. The flow for filling an order with the coordinator model is as follows:
 
-1. A taker selects the order(s) and creates a valid signed 0x transaction to fill the order(s) (e.g. `batchFillOrdersNoThrow`).
-2. The taker sends a fill request with the signed 0x transaction to the coordinator server that corresponds to each order.
-3. After a 1 second delay, the coordinator server responds with a signed approval.
-4. The taker submits the signed 0x transaction and approval to the `Coordinator` contract by calling `Coordinator.executeTransaction`.
-5. The `Coordinator` contract verifies that the approval is valid and executes the 0x transaction by calling `Exchange.executeTransaction`.
+1. A taker selects the desired order(s) and creates a valid signed 0x transaction to fill the order(s) (e.g. `batchFillOrdersNoThrow`).
+2. The taker looks up the Coordinator server endpoint(s) corresponding to the order(s) using the [Coordinator Registry](#CoordinatorRegistry) smart contract.
+3. The taker sends a fill request with the signed 0x transaction to the coordinator server that corresponds to each order.
+4. After a 1 second delay, the coordinator server responds with a signed approval.
+5. The taker submits the signed 0x transaction and approval to the `Coordinator` extension contract by calling `Coordinator.executeTransaction`.
+6. The `Coordinator` contract verifies that the approval is valid/unexpired and executes the 0x transaction by calling `Exchange.executeTransaction`.
 
-TODO: \* Image of above flow
+TODO: Image of above flow
 
 # Message Types
 
@@ -308,7 +309,7 @@ All signatures submitted to the `Coordinator` contract are represented as a byte
 
 ## Illegal
 
-The is the default value of the signature byte. A transaction that includes an `Illegal` signature will be reverted. Therefore, users must explicitly specify a valid signature type.
+This is the default value of the signature byte. A transaction that includes an `Illegal` signature will be reverted. Therefore, users must explicitly specify a valid signature type.
 
 ## Invalid
 
@@ -361,15 +362,15 @@ event CoordinatorEndpointSet(
 
 ## Design choices
 
-The goals of this coordinator server implementation are to enable soft cancels and to allow for a selective delay in between fill requests and fill approvals.
+The goals of this coordinator server implementation are to enable soft cancels and to enforce a selective delay between a fill request being received and approved.
 
 ### Soft cancels
 
-Typically, orders may only be cancelled using an on-chain method on the `Exchange` contract, such as `cancelOrder` or `cancelOrdersUpTo`. However, since coordinator orders may only be filled with an approval from their corresponding coordinator, they may be "soft cancelled" if the coordinator simply refuses to accept future fill requests for that order. This allows users to cancel outstanding orders quickly and freely without any on-chain transaction. Note that users must trust that the coordinator honor their cancel request until an order has expired or been cancelled on-chain. However this process is made auditable with signed cancel receipts provided by the coordinator.
+Typically, orders may only be cancelled using an on-chain method on the `Exchange` contract, such as `cancelOrder` or `cancelOrdersUpTo`. However, since coordinator orders may only be filled with an approval from their corresponding coordinator, they may be "soft cancelled" if the coordinator simply refuses to accept future fill requests for that order. This allows users to cancel outstanding orders quickly and freely without any on-chain transaction. Note that users must trust that the coordinator honor their cancel request until an order has expired or has been cancelled on-chain. However this process is made auditable with signed cancel receipts provided by the coordinator.
 
 ### Selective delay
 
-The coordinator server adds a time delay between fill requests and approvals. This design decision has been made in order to give liquidity providers higher optionality and the ability to cancel stale orders more frequently (decreasing the chances of losing money on a trade). Simulations have show this to decrease spreads, leading to a net benefit for both providers and consumers of liquidity. Note that this should also decrease profitability of coordinator orders for arbitraguers, which should indirectly decrease the number of trade collisions.
+The coordinator server adds a time delay between fill requests and approvals. This design decision has been made in order to give liquidity providers higher optionality and the ability to cancel stale orders more frequently (decreasing the chances of losing money on a trade). Simulations have shown this to decrease spreads, leading to a net benefit for both providers and consumers of liquidity. Note that this should also decrease profitability of coordinator orders for arbitraguers, which should indirectly decrease the number of trade collisions.
 
 ## Configuration
 
@@ -379,7 +380,7 @@ The delay in milliseconds between the receipt of fill requests and fill approval
 
 ### EXPIRATION_DURATION_SECONDS
 
-The amount of seconds an approval is valid for (default: 60 seconds). This parameter may be tweaked based off of the amount of congestion on the Ethereum network or the desired UX of your application. Users who are manually submitting transaction through a UI may need longer expiration times than a programmatic trader.
+The amount of seconds an approval is valid for (default: 60 seconds). This parameter may be tweaked based off of the amount of congestion on the Ethereum network or the desired UX of your application. Users who are manually submitting transactions through a UI may need longer expiration times than a programmatic trader.
 
 ## State
 
@@ -388,7 +389,7 @@ The coordinator server must maintain state in order to determine the validity of
 - The server must be able to identify orders for which it has issued a cancellation receipt (e.g by storing their hashes). This information can be discarded after the order has expired or been invalidated.
 - For each order with at least one approved fill, the server must store the sum of approved `takerAssetFillAmount`s for each approved taker. This information can be discarded after the order has been filled or invalidated. Note that this information should persist even if outstanding approvals that involve the order have expired.
 - For each order with at least one approved fill, the server must store any outstanding approval signatures for fill transactions that contain the order, as well as the corresponding expiration timestamp of each approval signature.
-- The server must be able to identify transactions that it has already approved (e.g by storing its hash). This information can be discarded after the transaction has been executed, invalidated, or if the approval has expired.
+- The server must be able to identify transactions that it has already approved (e.g by storing its hash). This information can be discarded after the transaction has been executed or expired.
 
 ## Handling fills
 
@@ -401,7 +402,7 @@ Fill transaction requests should be rejected under the following conditions:
 
 All other fill requests must be approved by the coordinator server exactly `SELECTIVE_DELAY_MS` after the request is received (TODO: how much on-chain validation should be done?).
 
-When a valid transaction request has been received, the coordinator server must broadcast a [`FILL_REQUEST_RECEIVED`](#fill_request_received) message to all connected Websocket clients. After a duration of `SELECTIVE_DELAY_MS`, the server should approve the fill request and simultaneously broadcast a [`FILL_REQUEST_APPROVED`](#fill_request_approved) message to all connected Websocket clients (if any orders contained in the transaction have not been soft cancelled).
+When a valid transaction request has been received, the coordinator server must broadcast a [`FILL_REQUEST_RECEIVED`](#fill_request_received) message to all connected Websocket clients. After a duration of `SELECTIVE_DELAY_MS`, the server should approve the fill request and simultaneously broadcast a [`FILL_REQUEST_APPROVED`](#fill_request_approved) message to all connected Websocket clients (if any orders contained in the transaction have not been soft cancelled in the mean time).
 
 ## Handling cancels
 
