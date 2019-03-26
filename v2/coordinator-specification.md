@@ -558,7 +558,7 @@ Usually a single signature will be returned. Only when someone requests to batch
   "outstandingSignatures": [
     {
       "orderHash": "0xd1dc61f3e7e5f41d72beae7863487beea108971de678ca00d903756f842ef3ce",
-      "coordinatorSignatures": [
+      "approvalSignatures": [
         "0x1c7383ca8ebd6de8b5b20b1c2d49bea166df7dfe4af1932c9c52ec07334e859cf2176901da35f4480ceb3ab63d8d0339d851c31929c40d88752689b9a8a535671303"
       ],
       "expirationTimeSeconds": 1552390380,
@@ -629,10 +629,10 @@ The fill request has been accepted and a signature issued. The corresponding 0x 
       "verifyingContractAddress": "0x48bacb9266a570d521063ef5dd96e61686dbe788",
       "signature": "0x1b36fca95c03d4e28b0ffb7796194841612005f0913e60f9da36f477a432e478240af81e8be55368b1a43f21266c6964e2b3d6c55b9d11dd5318ab76e63ff0c6f903"
     },
-    "coordinatorSignatures": [
+    "approvalSignatures": [
       "0x1b98e8b81249e49de6a76ae515108215621a2ad85909580de16a960280c97830eb2b417c7675775dc1ccaeca596deee5c8a0613058a48649e9b0ee2696b0cb975703"
     ],
-    "coordinatorSignatureExpiration": 1552395894
+    "approvalExpirationTimeSeconds": 1552395894
   }
 }
 ```
