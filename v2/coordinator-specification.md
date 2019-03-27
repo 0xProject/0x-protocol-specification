@@ -555,7 +555,7 @@ Usually a single signature will be returned. Only when someone requests to batch
 
 ```json
 {
-  "outstandingSignatures": [
+  "outstandingFillSignatures": [
     {
       "orderHash": "0xd1dc61f3e7e5f41d72beae7863487beea108971de678ca00d903756f842ef3ce",
       "approvalSignatures": [
@@ -564,11 +564,15 @@ Usually a single signature will be returned. Only when someone requests to batch
       "expirationTimeSeconds": 1552390380,
       "takerAssetFillAmount": "100000000000000000000"
     }
+  ],
+  "cancellationSignatures": [
+    "0x2ea3117a8ebd6de8b5b20b1c2d49bea166df7dfe4af1932c9c52ec07334e859cf2176901da35f4480ceb3ab63d8d0339d851c31929c40d88752689b9a855b5a7b401"
   ]
 }
 ```
 
-- `outstandingSignatures` - Information about the outstanding, unexpired signatures to fill the order(s) that have been soft-cancelled. Once they expire, the maker will have 100% certainty that their order can no longer be filled.
+- `outstandingFillSignatures` - Information about the outstanding, unexpired signatures to fill the order(s) that have been soft-cancelled. Once they expire, the maker will have 100% certainty that their order can no longer be filled.
+- `cancellationSignatures` - An approval signature of the cancellation 0x transaction submitted to the coordinator (with the expiration hard-coded to 0 -- although these never expire). These signatures can be used to prove that a soft-cancel was granted for these order(s).
 
 ## WebSocket API
 
