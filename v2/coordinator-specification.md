@@ -24,7 +24,7 @@ A coordinator has 2 components that differentiate it from a traditional relayer:
 1. The [`Coordinator` contract](#coordinator), which is a [0x extension contract](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md#filter-contracts) that verifies transactions have been approved by the correct set of coordinators.
 1. A [coordinator server](#reference-coordinator-server) that approves or rejects 0x transactions under different conditions.
 
-This specification will describe a specific implementation of each component that intends to create a market structure that is more favorable for liquidity providers while allowing for liquidity to be consumed by smart contracts. The flow for filling an order with the coordinator model is as follows:
+This specification will describe a specific implementation of each component that intends to create a market structure that is more favorable for liquidity providers while allowing for liquidity to be consumed by smart contracts. See the reference server [design choices](#design-choices) section for more information. The flow for filling an order with the coordinator model is as follows:
 
 1. A taker selects the desired order(s) and creates a valid signed 0x transaction to fill the order(s) (e.g. `batchFillOrdersNoThrow`).
 2. The taker looks up the Coordinator server endpoint(s) corresponding to the order(s) using the [Coordinator Registry](#CoordinatorRegistry) smart contract.
@@ -33,7 +33,9 @@ This specification will describe a specific implementation of each component tha
 5. The taker submits the signed 0x transaction and approval to the `Coordinator` extension contract by calling `Coordinator.executeTransaction`.
 6. The `Coordinator` contract verifies that the approval is valid/unexpired and executes the 0x transaction by calling `Exchange.executeTransaction`.
 
-TODO: Image of above flow
+<div style="text-align: center;">
+<img src="./img/0x_v2_coordinator.png" style="padding-bottom: 20px; padding-top: 20px;" width="80%" />
+</div>
 
 # Message Types
 
@@ -362,7 +364,10 @@ event CoordinatorEndpointSet(
 
 ## Design choices
 
-The goals of this coordinator server implementation are to enable soft cancels and to enforce a selective delay between a fill request being received and approved.
+The goals of this coordinator server implementation are to enable soft cancels and to enforce a selective delay between a fill request being received and approved. This implementation does _not_ explicitly mitigate trade collisions. However, this design has implicit benefits that may reduce the amount of collisions:
+
+1. Fewer arbitrage opportunities should exist because of a maker's ability to quickly cancel orders. This reduces any opportunities to front-run trades.
+1. All trade approvals are broadcast to all connected Websocket clients, which may be used as a signal to not attempt to fill already approved orders.
 
 ### Soft cancels
 
@@ -540,7 +545,7 @@ Submit a signed 0x transaction encoding either a 0x fill or cancellation. If the
   "signatures": [
     "0x1cc07d7ae39679690a91418d46491520f058e4fb14debdf2e98f2376b3970de8512ace44af0be6d1c65617f7aae8c2364ff63f241515ee1559c3eeecb0f671d9e903"
   ],
-  "expirationTimeSeconds": 1552390014
+  "expirationTimeSeconds": "1552390014"
 }
 ```
 
@@ -561,7 +566,7 @@ Usually a single signature will be returned. Only when someone requests to batch
       "approvalSignatures": [
         "0x1c7383ca8ebd6de8b5b20b1c2d49bea166df7dfe4af1932c9c52ec07334e859cf2176901da35f4480ceb3ab63d8d0339d851c31929c40d88752689b9a8a535671303"
       ],
-      "expirationTimeSeconds": 1552390380,
+      "expirationTimeSeconds": "1552390380",
       "takerAssetFillAmount": "100000000000000000000"
     }
   ],
@@ -636,7 +641,7 @@ The fill request has been accepted and a signature issued. The corresponding 0x 
     "approvalSignatures": [
       "0x1b98e8b81249e49de6a76ae515108215621a2ad85909580de16a960280c97830eb2b417c7675775dc1ccaeca596deee5c8a0613058a48649e9b0ee2696b0cb975703"
     ],
-    "approvalExpirationTimeSeconds": 1552395894
+    "approvalExpirationTimeSeconds": "1552395894"
   }
 }
 ```
