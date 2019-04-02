@@ -403,15 +403,15 @@ Fill transaction requests should be rejected under the following conditions:
 - The transaction is in any way invalid (incorrect formatting, signature, unsupported function, etc).
 - A transaction with the same hash has already been approved.
 - The taker has requested fills for an included order with total `takerAssetFillAmount`s that exceed the `takerAssetAmount` of the order. This creates a cost for requesting fills and should prevent takers from frequently requesting fills that they do not intend on executing.
-- An included order has been soft cancelled (TODO: Error response should include cancelled orders)
+- An included order has been soft cancelled.
 
-All other fill requests must be approved by the coordinator server exactly `SELECTIVE_DELAY_MS` after the request is received (TODO: how much on-chain validation should be done?).
+All other fill requests must be approved by the coordinator server exactly `SELECTIVE_DELAY_MS` after the request is received.
 
 When a valid transaction request has been received, the coordinator server must broadcast a [`FILL_REQUEST_RECEIVED`](#fill_request_received) message to all connected Websocket clients. After a duration of `SELECTIVE_DELAY_MS`, the server should approve the fill request and simultaneously broadcast a [`FILL_REQUEST_APPROVED`](#fill_request_approved) message to all connected Websocket clients (if any orders contained in the transaction have not been soft cancelled in the mean time).
 
 ## Handling cancels
 
-If a maker submits a valid signed 0x cancel transaction to the coordinator server (a transaction containing data for `cancelOrder` or `batchCancelOrders`), the server must no longer accept any future fill requests that contain the transaction orders. The server must respond with a signed cancel receipt (TODO: add this to spec) and simultaneously broadcast a [`CANCEL_REQUEST_ACCEPTED`](#cancel_request_accepted) message to all connected Websocket clients.
+If a maker submits a valid signed 0x cancel transaction to the coordinator server (a transaction containing data for `cancelOrder` or `batchCancelOrders`), the server must no longer accept any future fill requests that contain the transaction orders. The server must respond with a signed cancel receipt and simultaneously broadcast a [`CANCEL_REQUEST_ACCEPTED`](#cancel_request_accepted) message to all connected Websocket clients.
 
 # Standard Coordinator API
 
@@ -516,8 +516,6 @@ Submit a signed 0x transaction encoding either a 0x fill or cancellation. If the
 
 #### Payload
 
-[See payload schema](TODO)
-
 ```json
 {
   "signedTransaction": {
@@ -538,8 +536,6 @@ Submit a signed 0x transaction encoding either a 0x fill or cancellation. If the
 
 **Fill request response:**
 
-[See fill response schema](TODO)
-
 ```json
 {
   "signatures": [
@@ -555,8 +551,6 @@ Submit a signed 0x transaction encoding either a 0x fill or cancellation. If the
 Usually a single signature will be returned. Only when someone requests to batchFill multiple orders from the coordinator that were created with different supported feeRecipientAddresses, will this return a signature per feeRecipientAddress involved.
 
 **Cancellation request response:**
-
-[See cancellation response schema](TODO)
 
 ```json
 {
@@ -589,9 +583,7 @@ The WebSocket endpoint allows a client to subscribe to the following events:
 
 #### FILL_REQUEST_RECEIVED
 
-A fill request was received and is valid. The request has not yet been granted a coordinator signature. Depending on the server implementation, the request might need to wait for a selective delay before being issued a signature. (TODO: this should probably only broadcast the transactionHash)
-
-[See payload schema](TODO)
+A fill request was received and is valid. The request has not yet been granted a coordinator signature. Depending on the server implementation, the request might need to wait for a selective delay before being issued a signature.
 
 ```json
 {
@@ -605,8 +597,6 @@ A fill request was received and is valid. The request has not yet been granted a
 #### FILL_REQUEST_ACCEPTED
 
 The fill request has been accepted and a signature issued. The corresponding 0x transaction can now be executed on-chain.
-
-[See payload schema](TODO)
 
 ```json
 {
@@ -649,8 +639,6 @@ The fill request has been accepted and a signature issued. The corresponding 0x 
 #### CANCEL_REQUEST_ACCEPTED
 
 A cancellation request has been recevied and processed. The 0x orders included in the request have been soft-cancelled, and not additional fill signatures will be issued by the coordinator.
-
-[See payload schema](TODO)
 
 ```json
 {
