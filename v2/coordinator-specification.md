@@ -398,6 +398,8 @@ The coordinator server must maintain state in order to determine the validity of
 
 ## Handling fills
 
+_Note: `matchOrders` is not currently implemented in [0x-coordinator-server](https://github.com/0xProject/0x-coordinator-server). The server will not generate approval signatures for a `matchOrders` request. However, the Coordinator contract still requires approval signatures for any `matchOrders` transactions. As such, `matchOrders` transactions must be executed directly through the Exchange contract._
+
 Fill transaction requests should be rejected under the following conditions:
 
 - The transaction is in any way invalid (incorrect formatting, signature, unsupported function, etc).
