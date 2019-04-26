@@ -166,8 +166,6 @@ When interacting with coordinator orders, the following Exchange methods must be
 | [`batchCancelOrders`](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md#batchcancelorders)             | No                |
 | [`cancelOrdersUpTo`](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md#cancelordersupto)               | No                |
 
-Note: `matchOrders` is not currently implemented in [0x-coordinator-server](https://github.com/0xProject/0x-coordinator-server). The server will not generate approval signatures for a `matchOrders` request. However, the Coordinator contract still requires approval signatures for any `matchOrders` transactions. As such, `matchOrders` transactions must be executed directly through the Exchange contract. 
-
 `executeTransaction` will revert under the following conditions:
 
 - The `tx.origin` (Ethereum transaction signer) differs from the passed in `txOrigin` parameter.
@@ -399,6 +397,8 @@ The coordinator server must maintain state in order to determine the validity of
 - The server must be able to identify transactions that it has already approved (e.g by storing its hash). This information can be discarded after the transaction has been executed or expired.
 
 ## Handling fills
+
+_Note: `matchOrders` is not currently implemented in [0x-coordinator-server](https://github.com/0xProject/0x-coordinator-server). The server will not generate approval signatures for a `matchOrders` request. However, the Coordinator contract still requires approval signatures for any `matchOrders` transactions. As such, `matchOrders` transactions must be executed directly through the Exchange contract._
 
 Fill transaction requests should be rejected under the following conditions:
 
