@@ -512,6 +512,20 @@ If a certain network is not supported, the response should **400** as specified 
 }
 ```
 
+### GET /v1/configuration
+
+This endpoint returns the specific configurations chosen by this Coordinator server.
+
+#### Response
+
+```json
+{
+  "expirationDurationSeconds": 60,
+  "selectiveDelayMs": 1000,
+  "supportedNetworkIds": [1, 42]
+}
+```
+
 ### POST /v1/request_transaction
 
 Submit a signed 0x transaction encoding either a 0x fill or cancellation. If the 0x transaction encodes a fill, the sender is requesting a coordinator signature required to fill the order(s) on-chain. If the 0x transaction encodes an order(s) cancellation request, the sender is requesting the included order(s) to be soft-cancelled by the coordinator.
@@ -574,6 +588,30 @@ Usually a single signature will be returned. Only when someone requests to batch
 
 - `outstandingFillSignatures` - Information about the outstanding, unexpired signatures to fill the order(s) that have been soft-cancelled. Once they expire, the maker will have 100% certainty that their order can no longer be filled.
 - `cancellationSignatures` - An approval signature of the cancellation 0x transaction submitted to the coordinator (with the expiration hard-coded to 0 -- although these never expire). These signatures can be used to prove that a soft-cancel was granted for these order(s).
+
+### POST /v1/soft_cancels
+
+Within the coordinator model, the Coordinator server is the source-of-truth when it comes to determining whether an order has been soft-cancelled. This endpoint can be used to query whether a set of orders have been soft-cancelled. The response returns the subset of orders that have been soft-cancelled.
+
+#### Payload
+
+```json
+{
+  "orderHashes": [
+    "0xd1dc61f3e7e5f41d72beae7863487beea108971de678ca00d903756f842ef3ce", "0xabcc372e3812bba31a35958dc32d0beadf27595d51fb953709944559404e1b61"
+  ]
+}
+```
+
+#### Response
+
+```json
+{
+  "orderHashes": [
+    "0xabcc372e3812bba31a35958dc32d0beadf27595d51fb953709944559404e1b61"
+  ]
+}
+```
 
 ## WebSocket API
 
