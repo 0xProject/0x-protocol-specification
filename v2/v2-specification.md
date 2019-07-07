@@ -56,7 +56,7 @@
 The Exchange contract contains the bulk of the business logic within 0x protocol. It is the entry point for:
 
 1.  Filling [orders](#orders)
-2.  Cancelling [orders](#orders)
+2.  Canceling [orders](#orders)
 3.  Executing [transactions](#transactions)
 4.  Validating [signatures](#signatures)
 5.  Registering new [`AssetProxy`](#assetproxy) contracts into the system
@@ -1026,7 +1026,7 @@ All signatures submitted to the Exchange contract are represented as a byte arra
 
 ### Illegal
 
-The is the default value of the signature byte. A transaction that includes an Illegal signature will be reverted. Therefore, users must explicitly specify a valid signature type.
+This is the default value of the signature byte. A transaction that includes an Illegal signature will be reverted. Therefore, users must explicitly specify a valid signature type.
 
 ### Invalid
 
