@@ -385,7 +385,7 @@ The delay in milliseconds between the receipt of fill requests and fill approval
 
 ### EXPIRATION_DURATION_SECONDS
 
-The amount of seconds an approval is valid for (default: 60 seconds). This parameter may be tweaked based off of the amount of congestion on the Ethereum network or the desired UX of your application. Users who are manually submitting transactions through a UI may need longer expiration times than a programmatic trader.
+The amount of seconds an approval is valid for (default: 90 seconds). This parameter may be tweaked based off of the amount of congestion on the Ethereum network or the desired UX of your application. Users who are manually submitting transactions through a UI may need longer expiration times than a programmatic trader.
 
 ## State
 
@@ -520,7 +520,7 @@ This endpoint returns the specific configurations chosen by this Coordinator ser
 
 ```json
 {
-  "expirationDurationSeconds": 60,
+  "expirationDurationSeconds": 90,
   "selectiveDelayMs": 1000,
   "supportedNetworkIds": [1, 42]
 }
