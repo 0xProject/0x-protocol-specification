@@ -69,7 +69,7 @@ The [`AssetProxy`](#assetproxy) contracts are responsible for:
 2.  Performing the actual asset transfer
 3.  Authorizing/unauthorizing Exchange contract addresses from calling the transfer methods on this [`AssetProxy`](#assetproxy)
 
-In order to opt-in to using 0x protocol, users must approve an asset's associated [`AssetProxy`](#assetproxy) to transfer the asset on their behalf. All [`AssetProxy`](#assetproxy) contracts are currently identified by a unique value represented as an 8-bit unsigned integer. This type was chosen for efficiency reasons, but may be extended in the future.
+In order to opt-in to using 0x protocol, users must approve an asset's associated [`AssetProxy`](#assetproxy) to transfer the asset on their behalf.
 
 All [`AssetProxy`](#assetproxy) contracts have the following minimum interface:
 
@@ -1072,8 +1072,15 @@ contract IWallet {
     )
         external
         view
-        returns (bool isValid);
+        returns (bytes4 magicValue);
 }
+```
+
+A `Wallet` contract's `isValidSignature` method must return the following magic value if successful:
+
+```solidity
+// 0xb0671381
+bytes4 WALLET_MAGIC_VALUE = bytes4(keccak256("isValidWalletSignature(bytes32,address,bytes)"));
 ```
 
 Note when using this method to sign orders: although it can be useful to allow the validity of signatures to be determined by some state stored on the blockchain, it should be noted that the signature will only be checked the first time an order is filled. Therefore, the signature cannot be later invalidated by updating the associates state.
@@ -1122,8 +1129,15 @@ contract IValidator {
     )
         external
         view
-        returns (bool isValid);
+        returns (bytes4 magicValue);
 }
+```
+
+A `Validator` contract's `isValidSignature` method must return the following magic value if successful:
+
+```solidity
+// 0x42b38674
+bytes4 VALIDATOR_MAGIC_VALUE = bytes4(keccak256("isValidValidatorSignature(address,bytes32,address,bytes)"));
 ```
 
 The signature is validated by calling the `Validator` contract's `isValidSignature` method. When using this signature type, the [`Exchange`](#exchange) contract makes a `STATICCALL` to the `Validator` contract's `isValidSignature` method, which means that signature verifcation will fail and revert if the `Validator` attempts to update state.
@@ -1137,7 +1151,7 @@ if (!allowedValidators[signerAddress][validatorAddress]) {
     return false;
 }
 
-isValid = isValidValidatorSignature(
+magicValue = isValidValidatorSignature(
     validatorAddress,
     hash,
     signerAddress,
