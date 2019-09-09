@@ -41,7 +41,7 @@
     1.  [EIP-1271 Usage](#eip-1271-usage)
     1.  [ECRECOVER usage](#ecrecover-usage)
     1.  [Rounding errors](#rounding-errors)
-    1.  [Differences from 2.0](#differences-from-2.0)
+    1.  [Differences from 2.0](#differences-from-20)
 
 # Architecture
 
@@ -187,7 +187,7 @@ A trade is initiated when an [order](#orders) is passed into the [`Exchange`](#e
 ### ERC20 <> ERC20
 
 <div style="text-align: center;">
-<img src="./img/0x_v2_trade_erc20_erc20.png" style="padding-bottom: 20px; padding-top: 20px;" width="80%" />
+<img src="../img/0x_v2_trade_erc20_erc20.png" style="padding-bottom: 20px; padding-top: 20px;" width="80%" />
 </div>
 
 Transaction #1
@@ -206,7 +206,7 @@ Transaction #1
 ### ERC20 <> ERC721
 
 <div style="text-align: center;">
-<img src="./img/0x_v2_trade_erc20_erc721.png" style="padding-bottom: 20px; padding-top: 20px;" width="80%" />
+<img src="../img/0x_v2_trade_erc20_erc721.png" style="padding-bottom: 20px; padding-top: 20px;" width="80%" />
 </div>
 
 Transaction #1
@@ -245,22 +245,22 @@ TODO: add more detail after staking spec is added
 
 An order message consists of the following parameters:
 
-| Parameter                       | Type    | Description                                                                                                                                               |
-| ------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| makerAddress                    | address | Address that created the order.                                                                                                                           |
-| takerAddress                    | address | Address that is allowed to fill the order. If set to 0, any address is allowed to fill the order.                                                         |
-| feeRecipientAddress             | address | Address that will receive fees when order is filled.                                                                                                      |
-| [senderAddress](#senderaddress) | address | Address that is allowed to call Exchange contract methods that affect this order. If set to 0, any address is allowed to call these methods.              |
-| makerAssetAmount                | uint256 | Amount of makerAsset being offered by maker. Must be greater than 0.                                                                                      |
-| takerAssetAmount                | uint256 | Amount of takerAsset being bid on by maker. Must be greater than 0.                                                                                       |
-| makerFee                        | uint256 | Amount of makerFeeAsset paid to feeRecipient by maker when order is filled. If set to 0, no transfer of ZRX from maker to feeRecipient will be attempted. |
-| takerFee                        | uint256 | Amount of takerFeeAsset paid to feeRecipient by taker when order is filled. If set to 0, no transfer of ZRX from taker to feeRecipient will be attempted. |
-| expirationTimeSeconds           | uint256 | Timestamp in seconds at which order expires.                                                                                                              |
-| [salt](#salt)                   | uint256 | Arbitrary number to facilitate uniqueness of the order's hash.                                                                                            |
-| [makerAssetData](#assetdata)    | bytes   | ABIv2 encoded data that can be decoded by a specified proxy contract when transferring makerAsset.                                                        |
-| [takerAssetData](#assetdata)    | bytes   | ABIv2 encoded data that can be decoded by a specified proxy contract when transferring takerAsset.                                                        |
-| [makerFeeAssetData](#assetdata) | bytes   | ABIv2 encoded data that can be decoded by a specified proxy contract when transferring makerFeeAsset.                                                     |
-| [takerFeeAssetData](#assetdata) | bytes   | ABIv2 encoded data that can be decoded by a specified proxy contract when transferring takerFeeAsset.                                                     |
+| Parameter                       | Type    | Description                                                                                                                                  |
+| ------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| makerAddress                    | address | Address that created the order.                                                                                                              |
+| takerAddress                    | address | Address that is allowed to fill the order. If set to 0, any address is allowed to fill the order.                                            |
+| feeRecipientAddress             | address | Address that will receive fees when order is filled.                                                                                         |
+| [senderAddress](#senderaddress) | address | Address that is allowed to call Exchange contract methods that affect this order. If set to 0, any address is allowed to call these methods. |
+| makerAssetAmount                | uint256 | Amount of makerAsset being offered by maker. Must be greater than 0.                                                                         |
+| takerAssetAmount                | uint256 | Amount of takerAsset being bid on by maker. Must be greater than 0.                                                                          |
+| makerFee                        | uint256 | Amount of makerFeeAsset paid to feeRecipient by maker when order is filled. If set to 0, no fee payment to feeRecipient will be attempted.   |
+| takerFee                        | uint256 | Amount of takerFeeAsset paid to feeRecipient by taker when order is filled. If set to 0, no fee payment feeRecipient will be attempted.      |
+| expirationTimeSeconds           | uint256 | Timestamp in seconds at which order expires.                                                                                                 |
+| [salt](#salt)                   | uint256 | Arbitrary number to facilitate uniqueness of the order's hash.                                                                               |
+| [makerAssetData](#assetdata)    | bytes   | ABIv2 encoded data that can be decoded by a specified proxy contract when transferring makerAsset.                                           |
+| [takerAssetData](#assetdata)    | bytes   | ABIv2 encoded data that can be decoded by a specified proxy contract when transferring takerAsset.                                           |
+| [makerFeeAssetData](#assetdata) | bytes   | ABIv2 encoded data that can be decoded by a specified proxy contract when transferring makerFeeAsset.                                        |
+| [takerFeeAssetData](#assetdata) | bytes   | ABIv2 encoded data that can be decoded by a specified proxy contract when transferring takerFeeAsset.                                        |
 
 ### senderAddress
 
@@ -381,8 +381,8 @@ Note that the ordering of transfers matters because intermediate balances may be
 
 | Error                                                       | Condition                                                                                                                                  |
 | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| [IllegalReentrancyError)](#illegalreentrancyerror)          | Reentrancy is attempted                                                                                                                    |
-| [OrderStatusError)](#orderstatuserror)                      | The order is expired, cancelled, fully filled, or malformed                                                                                |
+| [IllegalReentrancyError](#illegalreentrancyerror)           | Reentrancy is attempted                                                                                                                    |
+| [OrderStatusError](#orderstatuserror)                       | The order is expired, cancelled, fully filled, or malformed                                                                                |
 | [ExchangeInvalidContextError](#exchangeinvalidcontexterror) | `msg.sender` is not equal to `order.senderAddress` or taker of the fill is not equal to `order.takerAddress`, if either are specified      |
 | [SignatureError](#signatureerror)                           | Signature validation returned false                                                                                                        |
 | [AssetProxyDispatchError](#assetproxydispatcherror)         | An `AssetProxy` is not specified or does not exist an `assetData` field in the order                                                       |
@@ -422,9 +422,9 @@ Calling `fillOrKillOrder` will perform the following steps:
 
 `fillOrKillOrder` may revert with any of the following errors, in addition to any errors specified in the [`fillOrder`](#fillorder) section.
 
-| Error                                        | Condition                                                                        |
-| -------------------------------------------- | -------------------------------------------------------------------------------- |
-| [IncompleteFillError)](#incompletefillerror) | The amount of `takerAsset` filled did not match the amount attempted fill amount |
+| Error                                       | Condition                                                                        |
+| ------------------------------------------- | -------------------------------------------------------------------------------- |
+| [IncompleteFillError](#incompletefillerror) | The amount of `takerAsset` filled did not match the amount attempted fill amount |
 
 ### batchFillOrders
 
@@ -559,9 +559,9 @@ Calling `marketSellOrdersNoThrow` will perform the following steps:
 
 `marketSellOrdersNoThrow` can only revert with an error under one rare condition:
 
-| Error                                    | Condition                                                            |
-| ---------------------------------------- | -------------------------------------------------------------------- |
-| [Uint256BinOpError)](#uint256binoperror) | The addition of `fillResults` from each fill resulted in an overflow |
+| Error                                   | Condition                                                            |
+| --------------------------------------- | -------------------------------------------------------------------- |
+| [Uint256BinOpError](#uint256binoperror) | The addition of `fillResults` from each fill resulted in an overflow |
 
 ### marketBuyOrdersNoThrow
 
@@ -601,9 +601,9 @@ Calling `marketBuyOrdersNoThrow` will perform the following steps:
 
 `marketBuyOrdersNoThrow` can only revert with an error under one rare condition:
 
-| Error                                    | Condition                                                            |
-| ---------------------------------------- | -------------------------------------------------------------------- |
-| [Uint256BinOpError)](#uint256binoperror) | The addition of `fillResults` from each fill resulted in an overflow |
+| Error                                   | Condition                                                            |
+| --------------------------------------- | -------------------------------------------------------------------- |
+| [Uint256BinOpError](#uint256binoperror) | The addition of `fillResults` from each fill resulted in an overflow |
 
 ### marketSellOrdersFillOrKill
 
@@ -637,9 +637,9 @@ Calling `marketSellOrdersFillOrKill` will perform the following steps:
 
 `marketSellOrdersFillOrKill` may revert with any of the following errors, in addition to any errors specified in the [`marketSellOrdersNoThrow`](#marketsellordersnothrow) section.
 
-| Error                                        | Condition                                                                        |
-| -------------------------------------------- | -------------------------------------------------------------------------------- |
-| [IncompleteFillError)](#incompletefillerror) | The amount of `takerAsset` filled did not match the amount attempted fill amount |
+| Error                                       | Condition                                                                        |
+| ------------------------------------------- | -------------------------------------------------------------------------------- |
+| [IncompleteFillError](#incompletefillerror) | The amount of `takerAsset` filled did not match the amount attempted fill amount |
 
 ### marketBuyOrdersFillOrKill
 
@@ -673,9 +673,9 @@ Calling `marketBuyOrdersFillOrKill` will perform the following steps:
 
 `marketBuyOrdersFillOrKill` may revert with any of the following errors, in addition to any errors specified in the [`marketBuyOrdersNoThrow`](#marketbuyordersnothrow) section.
 
-| Error                                        | Condition                                                                        |
-| -------------------------------------------- | -------------------------------------------------------------------------------- |
-| [IncompleteFillError)](#incompletefillerror) | The amount of `takerAsset` filled did not match the amount attempted fill amount |
+| Error                                       | Condition                                                                        |
+| ------------------------------------------- | -------------------------------------------------------------------------------- |
+| [IncompleteFillError](#incompletefillerror) | The amount of `takerAsset` filled did not match the amount attempted fill amount |
 
 ## Matching orders
 
@@ -745,8 +745,8 @@ Note that [rounding errors](#rounding-errors) will always be in favor of each or
 
 | Error                                                       | Condition                                                                                                                                                   |
 | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [IllegalReentrancyError)](#illegalreentrancyerror)          | Reentrancy is attempted                                                                                                                                     |
-| [OrderStatusError)](#orderstatuserror)                      | The order is expired, cancelled, fully filled, or malformed                                                                                                 |
+| [IllegalReentrancyError](#illegalreentrancyerror)           | Reentrancy is attempted                                                                                                                                     |
+| [OrderStatusError](#orderstatuserror)                       | The order is expired, cancelled, fully filled, or malformed                                                                                                 |
 | [ExchangeInvalidContextError](#exchangeinvalidcontexterror) | `msg.sender` is not equal to `order.senderAddress` or taker of the fill is not equal to `order.takerAddress`, if either are specified                       |
 | [SignatureError](#signatureerror)                           | Signature validation returned false                                                                                                                         |
 | [NegativeSpreadError](#negativespreaderror)                 | The orders have a positive spread                                                                                                                           |
@@ -849,9 +849,9 @@ Calling `batchMatchOrders` will perform the following steps:
 
 `batchMatchOrders` may revert with any of the following errors, in addition to any errors specified in the [`matchOrders`](#matchorders) section.
 
-| Error                                            | Condition                                                                     |
-| ------------------------------------------------ | ----------------------------------------------------------------------------- |
-| [BatchMatchOrdersError)](#batchmatchorderserror) | The lengths of any of the input arrays equal 0 or are not equal to each other |
+| Error                                           | Condition                                                                     |
+| ----------------------------------------------- | ----------------------------------------------------------------------------- |
+| [BatchMatchOrdersError](#batchmatchorderserror) | The lengths of any of the input arrays equal 0 or are not equal to each other |
 
 ### batchMatchOrdersWithMaximalFill
 
@@ -922,9 +922,9 @@ Calling `cancelOrder` will perform the following steps:
 
 `cancelOrder` may revert with any of the following errors:
 
-| Error                                                        | Condition                                                                                                                                                   |
-| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [ExchangeInvalidContextError)](#exchangeinvalidcontexterror) | `msg.sender` is not equal to `order.senderAddress` (if it is set) or the cancellation is being attempted from an address that is not the maker of the order |
+| Error                                                       | Condition                                                                                                                                                   |
+| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [ExchangeInvalidContextError](#exchangeinvalidcontexterror) | `msg.sender` is not equal to `order.senderAddress` (if it is set) or the cancellation is being attempted from an address that is not the maker of the order |
 
 ### batchCancelOrders
 
@@ -977,9 +977,9 @@ Orders with this maker and sender address combination that have a salt less than
 
 `cancelOrdersUpTo` may revert with any of the following errors:
 
-| Error                                | Condition                                                            |
-| ------------------------------------ | -------------------------------------------------------------------- |
-| [OrderEpochError)](#orderepocherror) | The new order epoch is less than or equal to the current order epoch |
+| Error                               | Condition                                                            |
+| ----------------------------------- | -------------------------------------------------------------------- |
+| [OrderEpochError](#orderepocherror) | The new order epoch is less than or equal to the current order epoch |
 
 ## Querying state of an order
 
@@ -1410,7 +1410,7 @@ When using this signature type, the [`Exchange`](#exchange) contract makes a `st
 
 The `Validator` signature type allows an address to delegate signature verification to any other address. The `Validator` contract must first be approved by calling the `setSignatureValidatorApproval` method:
 
-```
+```solidity
 // Mapping of signer => validator => approved
 mapping (address => mapping (address => bool)) public allowedValidators;
 
@@ -1435,7 +1435,7 @@ A Validator signature is then encoded as:
 
 A `Validator` contract must have the following [EIP-1271](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1271.md) compliant interface:
 
-```
+```solidity
 contract IValidator {
 
     /// @dev Verifies that a signature is valid.
@@ -1466,7 +1466,7 @@ When using this signature type, the [`Exchange`](#exchange) contract makes a `st
 
 Allows any address to sign a hash on-chain by calling the `preSign` method on the `Exchange` contract.
 
-```
+```solidity
 // Mapping of hash => signer => signed
 mapping (bytes32 => mapping(address => bool)) public preSigned;
 
@@ -1490,7 +1490,7 @@ The `EIP1271Wallet` signature type is similar in purpose to the `Wallet` signatu
 
 A `EIP1271Wallet` contract must have the following [EIP-1271](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1271.md) compliant interface:
 
-```
+```solidity
 contract IEIP1271Wallet {
 
     /// @dev Verifies that a signature is valid.
@@ -1696,7 +1696,7 @@ TODO: add events
 
 # Types
 
-## Order
+### Order
 
 ```solidity
 struct Order {
@@ -1717,7 +1717,7 @@ struct Order {
 }
 ```
 
-## ZeroExTransaction
+### ZeroExTransaction
 
 ```solidity
 struct ZeroExTransaction {
@@ -1729,7 +1729,7 @@ struct ZeroExTransaction {
 }
 ```
 
-## FillResults
+### FillResults
 
 ```solidity
 struct FillResults {
@@ -1741,7 +1741,7 @@ struct FillResults {
 }
 ```
 
-## MatchedFillResults
+### MatchedFillResults
 
 ```solidity
 struct MatchedFillResults {
@@ -1752,7 +1752,7 @@ struct MatchedFillResults {
 }
 ```
 
-## BatchMatchedFillResults
+### BatchMatchedFillResults
 
 ```solidity
 struct BatchMatchedFillResults {
@@ -1763,7 +1763,7 @@ struct BatchMatchedFillResults {
 }
 ```
 
-## OrderInfo
+### OrderInfo
 
 ```solidity
 struct OrderInfo {
@@ -1800,7 +1800,7 @@ The following rich revert reasons are used within the protocol:
 
 ### Error
 
-```
+```solidity
 /// @param error Error reason string.
 function Error(string memory message)
     internal
@@ -2469,7 +2469,7 @@ Doing any sort of division in the EVM may result in rounding errors. [`fillOrder
 
 - The addition of new [`expirationTimeSeconds` and `gasPrice` fields](#transaction-message-format) to 0x transactions
 - [`executeTransaction`](#executetransaction) now takes a [`ZeroExTransaction`](#zeroextransaction) struct as an input
-- [`executeTransaction](#executetransaction) now emits a [`TransactionExecution`](#transactionexecution) event upon successful execution
+- [`executeTransaction`](#executetransaction) now emits a [`TransactionExecution`](#transactionexecution) event upon successful execution
 - Addition of [`batchExecuteTransaction`](#batchexecutetransactions) for atomically executing multiple 0x transactions
 
 ### Changes to signature validation
