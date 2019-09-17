@@ -2454,7 +2454,7 @@ Doing any sort of division in the EVM may result in rounding errors. [`fillOrder
 - `marketBuyOrders` and `marketSellOrders` have been deprecated
 - The addition of [`marketBuyOrdersFillOrKill`](#marketbuyordersfillorkill) and [`marketSellOrdersFillOrKill`](#marketsellordersfillorkill)
 - All of the `marketBuy*` and `marketSell*` functions now allow multiple different assets to be bought or sold (be careful with this!)
-- The ordering of transfers during a single fill has changed. A fill now first transfers an asset from the taker to the maker, opening up the ability to integrate the [`ERC20BuyerAsseyProxy`](https://github.com/0xProject/ZEIPs/issues/47) (along with other similar contracts)
+- The ordering of transfers during a single fill has changed. A fill now first transfers an asset from the taker to the maker, opening up the ability to integrate the [`ERC20BuyerAssetProxy`](https://github.com/0xProject/ZEIPs/issues/47) (along with other similar contracts)
 
 ### Changes to order matching
 
