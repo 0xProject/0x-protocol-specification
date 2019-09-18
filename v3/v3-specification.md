@@ -264,7 +264,7 @@ An order message consists of the following parameters:
 
 ### senderAddress
 
-If the `senderAddress` of an order is not set to 0, only that address may call [`Exchange`](#exchange) contract methods that affect that order. In other words, the `senderAddress` _must_ be the `msg.sender` of the call in order to fill or cancel these orders.
+If the `senderAddress` of an order is not set to 0, only that address may call [`Exchange`](#exchange) contract methods that affect that order. In other words, the `senderAddress` _must_ be the `msg.sender` of the call in order to fill or cancel these orders. If the `senderAddress` is set to a contract, that contract must enable any functions that it wishes to use in combination with the order (including cancellations). The contract can do so by explicitly calling the relevant `Exchange` functions, by calling [`executeTransaction`](#executetransaction), or by calling [`batchExecuteTransactions`](#batchexecutetransactions).
 
 ### salt
 
@@ -1153,7 +1153,7 @@ Transactions must be executed by calling any of the 2 following functions.
 
 ### executeTransaction
 
-`executeTransaction` is typically the entry point for executing any 0x transaction. It can be used to call any external function on the `Exchange` contract in the context of the transaction signer (with the exception of any administrative functions). Note that while [protocol fees](#protocol-fees) are ordinarily charged only to the taker, it is possible for a caller of `executeTransaction` to pay the fee on behalf of the taker by providing a value with the message call.
+`executeTransaction` is typically the entry point for executing any 0x transaction. It can be used to call any external function on the `Exchange` contract in the context of the transaction signer (context will _not_ be updated for any administrative function calls). Note that while [protocol fees](#protocol-fees) are ordinarily charged only to the taker, it is possible for a caller of `executeTransaction` to pay the fee on behalf of the taker by providing a value with the message call.
 
 ```solidity
 /// @dev Executes an Exchange method call in the context of signer.
