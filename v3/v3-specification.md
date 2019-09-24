@@ -2357,13 +2357,13 @@ Hashes of orders and transactions are calculated according to the [EIP-712 speci
 The domain hash for the `Exchange` contract can be calculated with:
 
 ```solidity
-// 0xb1b295f2c1ed6b459ddeb95701466e4e0b385527a6cfa3873ae72a63c08466b6
+// 0x8b73c3c69bb8fe3d512ecc4cf759cc79239f7b179b0ffacaa9a75d522b39400f
 bytes32 constant internal EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH = keccak256(abi.encodePacked(
     "EIP712Domain(",
     "string name,",
     "string version,",
     "uint256 chainId,",
-    "address verifyingContractAddress",
+    "address verifyingContract",
     ")"
 ));
 
