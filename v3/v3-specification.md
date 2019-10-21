@@ -1454,6 +1454,8 @@ contract IValidator {
 
 When using this signature type, the [`Exchange`](#exchange) contract makes a `staticcall` to the `Validator` contract's `isValidSignature` method, which means that signature verification will fail and revert if the `Validator` attempts to update state. A successful call to `isValidSignature` should always return `0x20c13b0b`, which is equal to `bytes4(keccak256("isValidSignature(bytes,bytes)")`. See the [EIP-1271 usage](#eip-1271-usage) section for information on how data is encoded before calling `isValidSignature`.
 
+NOTE: Approved `Validator` contracts should be 100% trusted. A `Validator` contract with a malicious or incorrectly implemented `isValidSignature` function can result in the loss of _all_ assets that are approved for trading within the protocol.
+
 #### Errors
 
 | Error                                                                     | Condition                                                                                     |
