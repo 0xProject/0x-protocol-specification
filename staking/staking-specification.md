@@ -232,6 +232,12 @@ When this function is called:
 
 #### 4.1 Errors by `endEpoch`
 
+|Error|Condition|
+|--|--|
+| [PreviousEpochNotFinalizedError](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/libs/LibStakingRichErrors.sol#L294) |The previous epoch is not finalized: at least one pool has not been paid its reward.|
+|[BlockTimestampTooLowError](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/libs/LibStakingRichErrors.sol#L173)|Not enough time has elapsed to end the epoch.|
+
+
 ## 5 Staking
 
 ZRX is staked by depositing tokens into the Staking Contract. The diagram below illustrates this workflow.
