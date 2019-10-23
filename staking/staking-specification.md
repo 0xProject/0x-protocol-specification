@@ -33,6 +33,10 @@
 <br>&nbsp;&nbsp;&nbsp;&nbsp;[9.3 Tracking for Reward Balances for Pool Members](#93-tracking-for-reward-balances-for-pool-members)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;[9.4 Stake Management](#94-stake-management)
 
+
+TODO -- Add section on `payProtocolFee`
+
+
 ## 1 Overview
 
 This spec outlines the design principles and constraints of the liquidity incentive mechanism, along with its architecture, implementation and usage.
@@ -347,6 +351,27 @@ function moveStake(
 
 Note that when stake is moved its new status comes into effect on the _next epoch_. Stake's status remains unchanged over the duration of an epoch.
 
+#### 5.2.1 Logic of `moveStake`
+
+1. No-op if amount to move is zero or moving both from and to the `undelegated` state.
+2. If moving from `delegated` state then `undelegate` the stake.
+    i. Sanity check the pool we're undelegating from exists.
+    ii. Withdraw any rewards owed to the delegator by this pool (see [Section ]).
+    iii. Decrease how much stake the staker has delegated to the input pool.
+    iv. Decrease how much stake has been delegated to pool.
+    v. Decrease balance of global delegated stake (aggregated across all stakers).
+3. If moving to `delegated` state then `delegate` the stake.
+    i. Sanity check the pool we're delegating to exists.
+    ii. Withdraw any rewards owed to the delegator by this pool.
+    iii. Increase how much stake the staker has delegated to the input pool.
+    iv. Increase how much stake has been delegated to pool.
+    v. Increase balance of global delegated stake (aggregated across all stakers).
+4. Execute move.
+4. Emit the [MoveStake](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IStakingEvents.sol#L25) event.
+
+
+#### 5.2.3 Errors by `moveStake`
+
 ### 5.3 Querying Stake
 
 The interface below describes how to query balances in the Staking Contract.
@@ -533,6 +558,10 @@ function computeRewardBalanceOfDelegator(bytes32 poolId, address member)
     returns (uint256 reward);
 ```
 
+#### 6.2.1 Logic of `finalizePool`
+
+#### 6.2.2 Errors by `finalizePool`
+
 ## 7 Batch Calls
 
 The staking contract supports arbitrary batch function calls to the staking logic contract, allowing for several operations in a single transaction. For example, finalizing several pools in one transaction.
@@ -545,6 +574,7 @@ function batchExecute(bytes[] calldata data)
     external
     returns (bytes[] memory batchReturnData);
 ```
+
 
 ## 8 Contract Interfaces
 
