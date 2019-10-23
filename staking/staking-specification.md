@@ -780,4 +780,4 @@ Inactive stake includes a Withdrawable field (W) that reflects how much stake ca
 
 The figure below illustrates how these fields are updated to track a user's stake.
 
-<p align="center"><img src="./assets/StakeManagementExample.jpg" width="700" /></p>
+<p align="center"><img src="./assets/StakeManagementExample.png" width="700" /></p>
