@@ -271,7 +271,15 @@ function unstake(uint256 amount)
 4. Emit the [Stake](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IStakingEvents.sol#L9) event.
 
 #### 5.0.2 Errors by `stake`
+
+|Error|Condition|
+|--|--|
+| [TRANSFER_FAILED](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/asset-proxy/contracts/src/ERC20Proxy.sol#L162) |Failed to deposit tokens into the ZRX vault. Most likely the user had an insufficient ZRX balance.|
+
 #### 5.0.3 Logic of `unstake`
+
+
+
 #### 5.0.4 Errors by `unstake`
 
 ### 5.1 Staking Pools
