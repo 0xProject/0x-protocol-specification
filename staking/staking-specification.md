@@ -764,19 +764,18 @@ mapping (bytes32  =>  uint256) internal cumulativeRewardsByPoolLastStored;
 
 Below are the design objectives of stake management:
 
-1. Freshly minted stake is active.
+1. Depositing ZRX mints stake that is is undelegated by default.
+2. Withdrawing ZRX is done by unstaking; any undelegated stake can be unstaked.
 2. Delegating, un-delegating and re-delegating stake comes into effect next epoch.
 3. Users can freely adjust the distribution of their stake for the next epoch.
-4. Stake can be withdrawn after it is inactive for one full epoch.
 
-There are three statuses that stake can exist in: Active, Inactive or Delegated. Each state has three fields:
+There are two statuses that stake can exist in: Undelegated or Delegated. Each state has three fields:
 
 1. How much stake is currently in this state (`currentEpochBalance` in the code; `cur` in the diagram below)
 2. How much stake is in this state next epoch (`nextEpochBalance` in the code; `next` in the diagram below)
 3. The last time this state was stored (`currentEpoch` in the code)
 
 These fields combined allow us to compute the correct values at any given epoch without user intervention.
-Inactive stake includes a Withdrawable field (W) that reflects how much stake can be withdrawn at any given time.
 
 The figure below illustrates how these fields are updated to track a user's stake.
 
