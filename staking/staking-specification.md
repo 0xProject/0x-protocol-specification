@@ -274,11 +274,16 @@ function unstake(uint256 amount)
 
 |Error|Condition|
 |--|--|
-| [TRANSFER_FAILED](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/asset-proxy/contracts/src/ERC20Proxy.sol#L162) |Failed to deposit tokens into the ZRX vault. Most likely the user had an insufficient ZRX balance.|
+| [TRANSFER_FAILED](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/asset-proxy/contracts/src/ERC20Proxy.sol#L162) |Failed to deposit tokens into the ZRX vault; likely the user had an insufficient ZRX balance.|
 
 #### 5.0.3 Logic of `unstake`
 
-
+1. Compute amount of staked ZRX that can be unstaked: this is the `min` of the user's undelegated stake in the current and next epoch.
+2. Assert the amount to unstake is less or equal to the amount computed in (1).
+3. Decrease the user's stake in the current and next epoch.
+3. Transfer ZRX tokens from the ZRX Vault to the user.
+4. The ZRX Vault emits the [Withdraw](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IZrxVault.sol#L42) event.
+5. Emit the [Unstake](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IStakingEvents.sol#L17) event.
 
 #### 5.0.4 Errors by `unstake`
 
