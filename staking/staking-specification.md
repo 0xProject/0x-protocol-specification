@@ -1,13 +1,13 @@
 # 0x protocol Staking specification
 
 ## Table of Contents
-1. [Overview](#1-overview)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;1.1 [Motivation](#11-motivation)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;1.2 [Utility of Stake](#13-utility-of-stake)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;1.3 [Staking Pools](#14-staking-pools)
-<br>2 [Architecture](#2-architecture)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;2.1 [Read-Only Mode](#21-read-only-mode)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;2.2 [Catastrophic Failure Mode](#22-catastrophic-failure-mode)
+[1 Overview](#1-overview)
+<br>&nbsp;&nbsp;&nbsp;&nbsp;[1.1 Motivation](#11-motivation)
+<br>&nbsp;&nbsp;&nbsp;&nbsp;[1.2 Utility of Stake](#13-utility-of-stake)
+<br>&nbsp;&nbsp;&nbsp;&nbsp;[1.3 Staking Pools](#14-staking-pools)
+<br>[2 Architecture](#2-architecture)
+<br>&nbsp;&nbsp;&nbsp;&nbsp;[2.1 Read-Only Mode](#21-read-only-mode)
+<br>&nbsp;&nbsp;&nbsp;&nbsp;[2.2 Catastrophic Failure Mode](#22-catastrophic-failure-mode)
 <br>[3 Contract Migrations](#3-contract-migrations)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;[3.1 Deploying the system](#31-deploying-the-system)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;[3.2 Upgrading Staking Proxy](#32-upgrading-staking-proxy)
