@@ -163,10 +163,6 @@ function getParams()
     );
 ```
 
-#### 3.6.1 Logic of `setParams`
-
-#### 3.6.2 Errors by `setParams`
-
 ### 3.7 Managing Exchange Addresses
 
 Exchanges that generate protocol fees must be registered in the staking contract by an authorized address. The interface is described below.
@@ -200,10 +196,6 @@ After the system has been in Read-Only mode for 40 days, anyone can force the ZR
 function enterCatastrophicFailureIfProlongedReadOnlyMode()
     external;
 ```
-
-#### 3.8.1 Logic of enterCatastrophicFailureIfProlongedReadOnlyMode
-#### 3.8.2 Errors by enterCatastrophicFailureIfProlongedReadOnlyMode
-
 
 ## 4 Epochs & Scheduling
 
