@@ -420,37 +420,24 @@ The Cobb-Douglas function is used to compute how much of the aggregate fees shou
 | _D_ | Total weighted ZRX staked across all (active) market maker pools this epoch. |
 | _α_ | A constant in the range [0..1] that determines the weight of fees vs stake. |
 
-At the end of an epoch, each pool that traded can retrieve their liquidity reward. This is done by calling the finalize function. Dust pools (that have )
+At the end of an epoch, each pool that traded can retrieve their liquidity reward. This is done by calling the finalize function. Dust pools (that have less than 100 ZRX staked) are not elegible for rewards.
 
 ```solidity
-/// @dev Instantly finalizes a single pool that was active in the previous
+/// @dev Instantly finalizes a single pool that earned rewards in the previous
 ///      epoch, crediting it rewards for members and withdrawing operator's
 ///      rewards as WETH. This can be called by internal functions that need
 ///      to finalize a pool immediately. Does nothing if the pool is already
-///      finalized or was not active in the previous epoch.
+///      finalized or did not earn rewards in the previous epoch.
 /// @param poolId The pool ID to finalize.
-/// @return operatorReward The reward credited to the pool operator.
-/// @return membersReward The reward credited to the pool members.
-/// @return membersStake The total stake for all non-operator members in
-///         this pool.
 function finalizePool(bytes32 poolId)
-    public
-    returns (
-        uint256 operatorReward,
-        uint256 membersReward,
-        uint256 membersStake
-    );
+    external;
 ```
 
-Each pool has until the end of the current epoch to finalize their pool for the previous epoch. During finalization the market maker will be paid their % of the reward in WETH. Pool members are paid when they modify how much stake they've delegated to the pool (or undelegate). Alternatively, members can retrieve their reward in WETH by calling the withdraw function.
+Each pool has until the end of the epoch to finalize their pool for the previous epoch. During finalization the market maker will be paid their % of the reward in WETH. Pool members are paid when they modify how much stake they've delegated to the pool (or undelegate). Alternatively, members can retrieve their reward in WETH by calling the withdraw function.
 
 ```solidity
-/// @dev Syncs rewards for a delegator. This includes transferring WETH
-///      rewards to the delegator, and adding/removing
-///      dependencies on cumulative rewards.
-///      This is used by a delegator when they want to sync their rewards
-///      without delegating/undelegating. It's effectively the same as
-///      delegating zero stake.
+/// @dev Withdraws the caller's WETH rewards that have accumulated
+///      until the last epoch.
 /// @param poolId Unique id of pool.
 function withdrawDelegatorRewards(bytes32 poolId) external;
 ```
