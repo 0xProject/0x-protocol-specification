@@ -128,27 +128,26 @@ The staking contracts share the Exchange's ERC20 proxy. It is possible this cont
 Configurable parameters can be set or queried using the functions below.
 
 ```
-/// @dev Set all configurable parameters at once.
+ /// @dev Set all configurable parameters at once.
 /// @param _epochDurationInSeconds Minimum seconds between epochs.
 /// @param _rewardDelegatedStakeWeight How much delegated stake is weighted vs operator stake, in ppm.
 /// @param _minimumPoolStake Minimum amount of stake required in a pool to collect rewards.
-/// @param _maximumMakersInPool Maximum number of maker addresses allowed to be registered to a pool.
 /// @param _cobbDouglasAlphaNumerator Numerator for cobb douglas alpha factor.
 /// @param _cobbDouglasAlphaDenominator Denominator for cobb douglas alpha factor.
 function setParams(
     uint256 _epochDurationInSeconds,
     uint32 _rewardDelegatedStakeWeight,
     uint256 _minimumPoolStake,
-    uint256 _maximumMakersInPool,
     uint32 _cobbDouglasAlphaNumerator,
     uint32 _cobbDouglasAlphaDenominator
-) external onlyAuthorized;
+)
+    external
+    onlyAuthorized;
 
 /// @dev Retrieves all configurable parameter values.
 /// @return _epochDurationInSeconds Minimum seconds between epochs.
 /// @return _rewardDelegatedStakeWeight How much delegated stake is weighted vs operator stake, in ppm.
 /// @return _minimumPoolStake Minimum amount of stake required in a pool to collect rewards.
-/// @return _maximumMakersInPool Maximum number of maker addresses allowed to be registered to a pool.
 /// @return _cobbDouglasAlphaNumerator Numerator for cobb douglas alpha factor.
 /// @return _cobbDouglasAlphaDenominator Denominator for cobb douglas alpha factor.
 function getParams()
@@ -158,7 +157,6 @@ function getParams()
         uint256 _epochDurationInSeconds,
         uint32 _rewardDelegatedStakeWeight,
         uint256 _minimumPoolStake,
-        uint256 _maximumMakersInPool,
         uint32 _cobbDouglasAlphaNumerator,
         uint32 _cobbDouglasAlphaDenominator
     );
