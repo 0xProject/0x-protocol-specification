@@ -163,11 +163,11 @@ function getParams()
     );
 ```
 
-### 3.6.1 Logic of `setParams`
+#### 3.6.1 Logic of `setParams`
 
 
 
-### 3.6.2 Errors by `setParams`
+#### 3.6.2 Errors by `setParams`
 
 ### 3.7 Forcing Catastrophic Failure after Prolonged Read-Only Mode
 
