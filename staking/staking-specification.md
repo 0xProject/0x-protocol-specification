@@ -287,6 +287,11 @@ function unstake(uint256 amount)
 
 #### 5.0.4 Errors by `unstake`
 
+|Error|Condition|
+|--|--|
+| [BalanceError](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/libs/LibStakingRichErrors.sol#L143) |Failed to deposit tokens into the ZRX vault; likely the user had an insufficient ZRX balance.|
+| [TRANSFER_FAILED](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/asset-proxy/contracts/src/ERC20Proxy.sol#L162) |Failed to withdraw tokens from the ZRX vault|
+
 ### 5.1 Staking Pools
 
 Staking pools can be created to leverage the weight of other stakers. A pool has a single operator and any number of members, who delegate their ZRX to the pool. Any staker can create a pool, although at present it is only beneficial for market makers to create staking pools. This is discussed more in [Section 6](#6-liquidity-incentives), along with details on creating a staking pool.
