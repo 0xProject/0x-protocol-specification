@@ -163,6 +163,12 @@ function getParams()
     );
 ```
 
+### 3.6.1 Logic of `setParams`
+
+
+
+### 3.6.2 Errors by `setParams`
+
 ### 3.7 Forcing Catastrophic Failure after Prolonged Read-Only Mode
 
 After the system has been in Read-Only mode for 40 days, anyone can force the ZRX Vault into Catastrophic Failure Mode by calling into the ZRX Vault Backstop contract.
@@ -476,26 +482,103 @@ function batchExecute(bytes[] calldata data)
     returns (bytes[] memory batchReturnData);
 ```
 
-## 8 Contract Interfaces and Internal Logic
+## 8 Contract Interfaces
 
 ### 8.1 Staking Contract
 
-|Function|Description|
-|--|--|
-| ```solidity
+
+
+|Function|Description|Implementation|
+|--|--|--|
+|`addExchangeAddress`|Adds an exchange address that will pay protocol fees.|[MixinExchangeManager](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/fees/MixinExchangeManager.sol)|
+
+
+
+aggregatedStatsByEpoch
+
 cobbDouglasAlphaDenominator
-``` | |
-| | |
-| | |
-| | |
-| | |
-| | |
-| | |
-| | |
-| | |
-| | |
-| | |
-| | |
+
+cobbDouglasAlphaNumerator
+
+| `computeRewardBalanceOfDelegator` | Computes the reward balance of a delegator. | |
+| `computeRewardBalanceOfOperator` | Returns the Cobb-Douglas | |
+
+
+
+
+createStakingPool
+
+currentEpoch
+
+currentEpochStartTimeInSeconds
+
+decreaseStakingPoolOperatorShare
+
+endEpoch
+
+epochDurationInSeconds
+
+finalizePool
+
+getCurrentEpochEarliestEndTimeInSeconds
+
+getGlobalStakeByStatus
+
+getOwnerStakeByStatus
+
+getParams
+
+getStakeDelegatedToPoolByOwner
+
+getStakingPool
+
+getStakingPoolStatsThisEpoch
+
+getTotalStake
+
+getTotalStakeDelegatedToPool
+
+getWethContract
+
+getZrxVault
+
+joinStakingPoolAsMaker
+
+minimumPoolStake
+
+moveStake
+
+payProtocolFee
+
+poolIdByMaker
+
+poolStatsByEpoch
+
+readOnlyProxy
+
+readOnlyProxyCallee
+
+readOnlyState
+
+removeExchangeAddress
+
+rewardsByPoolId
+
+setParams
+
+stake
+
+stakingContract
+
+unstake
+
+validExchanges
+
+wethReservedForPoolRewards
+
+withdrawDelegatorRewards
+
+
 
 ### 8.2 Staking Proxy
 
@@ -505,7 +588,7 @@ cobbDouglasAlphaDenominator
 
 ### 8.5 ZRX Vault Backstop
 
-## 9 Events
+## 9 Contract Events
 
 ### 9.1 Staking Contract
 
