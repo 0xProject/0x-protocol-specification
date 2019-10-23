@@ -478,15 +478,19 @@ function batchExecute(bytes[] calldata data)
 
 ## 8 Contract Interfaces and Internal Logic
 
-### 8.1 Staking Proxy
+### 8.1 Staking Contract
 
-### 8.2 Staking Contract
+### 8.2 Staking Proxy
 
-### 8.2 Staking Contract
+### 8.3 Read-Only Proxy
 
-### 8.2 Staking Contract
+### 8.4 ZRX Vault
 
-### 8.2 Staking Events
+### 8.5 ZRX Vault Backstop
+
+## 9 Events
+
+### 9.1 Staking Contract
 
 The events below are defined in [IStakingEvents](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IStakingEvents.sol).
 
@@ -618,11 +622,19 @@ event OperatorShareDecreased(
 );
 ```
 
-## 9 Algorithms, Data Structures & Design Patterns
+### 9.1 Staking Proxy
+
+### 9.2 Read-Only Proxy
+
+### 9.3 ZRX Vault
+
+### 9.4 ZRX Vault Backstop
+
+## 10 Algorithms, Data Structures & Design Patterns
 
 This section dives deeper into the mechanics of the smart contracts.
 
-### 9.1 Securing the Proxy Pattern
+### 10.1 Securing the Proxy Pattern
 
 The proxy pattern splits the state and logic into different contracts, allowing the logic contract to be upgraded. This is achieved using a `delegatecall` from the state contract into the logic contract.
 
@@ -634,7 +646,7 @@ The best way we found to mitigate this danger is with runtime sanity checks. We 
 
 See [LibProxy](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/libs/LibProxy.sol) for the proxy code.
 
-### 9.2 The Read-Only Proxy
+### 10.2 The Read-Only Proxy
 
 The [read-only proxy](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/ReadOnlyProxy.sol) is stateless and sits between the Staking Contract Proxy and Staking Contract. It forces every call to be read-only by using a force-revert delegate-call.
 
@@ -647,7 +659,7 @@ Steps:
 
 See [LibProxy](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/libs/LibProxy.sol) for the proxy code.
 
-### 9.3 Tracking for Reward Balances for Pool Members
+### 10.3 Tracking for Reward Balances for Pool Members
 
 
 This section describes the workflow for tracking and computing the portion of a pool's reward that belongs to a given member. The general equations for this are shown below.
@@ -692,7 +704,7 @@ mapping (bytes32  => StoredBalance) internal _delegatedStakeByPoolId;
 mapping (bytes32  =>  mapping (uint256  => Fraction)) internal _cumulativeRewardsByPool;
 ```
 
-#### 9.3.1 Computing Rewards - in Practice
+#### 10.3.1 Computing Rewards - in Practice
 
 In the equations above, a staker earned rewards from epochs `[0..n]`. This means that the staker modified between epochs `n` and stopped earning rewards in epoch `n+1`. So at the time of the call, we don't have access to the reward for epoch `n`.
 
@@ -705,7 +717,7 @@ The final equation for computing a member's reward during epoch `n` becomes:
 <p align="center"><img src="./assets/reward_tracking/Reward-Final.png" height="60" /></p>
 
 
-#### 9.3.2 Handling Epochs With No Rewards
+#### 10.3.2 Handling Epochs With No Rewards
 
 To compute a member's reward using this algorithm, we need to know the cumulative rewards at the entry and exit epoch of the member. But, what happens if no reward was recorded during one of these epochs?
 
@@ -719,7 +731,7 @@ mapping (bytes32  =>  uint256) internal cumulativeRewardsByPoolLastStored;
 ```
 
 
-### 9.4 Stake Management
+### 10.4 Stake Management
 
 Below are the design objectives of stake management:
 
