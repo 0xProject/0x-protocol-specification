@@ -266,8 +266,9 @@ function unstake(uint256 amount)
 #### 5.0.1 Logic of `stake`
 
 1. Deposit ZRX tokens into ZRX Vault.
-2. Increment the sender's stake balance.
-3. Emit the [Stake](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IStakingEvents.sol#L9) event.
+2. ZRX Vault emits the [Deposit](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IZrxVault.sol#L34) event.
+3. Increment the sender's stake balance.
+4. Emit the [Stake](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IStakingEvents.sol#L9) event.
 
 #### 5.0.2 Errors by `stake`
 #### 5.0.3 Logic of `unstake`
