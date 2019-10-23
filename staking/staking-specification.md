@@ -225,10 +225,10 @@ When this function is called:
 1. Assert the previous epoch (`currentEpoch-1`) is finalized: all rewards have been paid to pools.
 2. Wrap any ETH into WETH (protocol fees can be earned in ETH or WETH, but rewards are paid in WETH).
 3. Store statistics on the epoch, including the total WETH in the contract - this value is the total reward available to pools.
-4. Emit `EpochEnded` event.
+4. Emit [EpochEnded](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IStakingEvents.sol#L60) event.
 5. Assert that enough time has elapsed to increment the epoch.
 6. Increment the `currentEpoch` by 1.
-7. If no pools earned rewards this epoch then the epoch is implicitly finalized; emit the `EpochFinalized` event.
+7. If no pools earned rewards this epoch then the epoch is implicitly finalized; emit the [EpochFinalized](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IStakingEvents.sol#L72) event.
 
 #### 4.1 Errors by `endEpoch`
 
@@ -262,6 +262,16 @@ function stake(uint256 amount)
 function unstake(uint256 amount)
     external;
 ```
+
+#### 5.0.1 Logic of `stake`
+
+1. Deposit ZRX tokens into ZRX Vault.
+2. Increment the sender's stake balance.
+3. Emit the [Stake](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IStakingEvents.sol#L9) event.
+
+#### 5.0.2 Errors by `stake`
+#### 5.0.3 Logic of `unstake`
+#### 5.0.4 Errors by `unstake`
 
 ### 5.1 Staking Pools
 
