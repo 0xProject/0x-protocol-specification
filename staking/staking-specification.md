@@ -165,11 +165,32 @@ function getParams()
 
 #### 3.6.1 Logic of `setParams`
 
-
-
 #### 3.6.2 Errors by `setParams`
 
-### 3.7 Forcing Catastrophic Failure after Prolonged Read-Only Mode
+### 3.7 Managing Exchange Addresses
+
+Exchanges that generate protocol fees must be registered in the staking contract by an authorized address. The interface is described below.
+
+```solidity
+/// @dev Adds a new exchange address
+/// @param addr Address of exchange contract to add
+function addExchangeAddress(address addr)
+    external
+    onlyAuthorized;
+
+/// @dev Removes an existing exchange address
+/// @param addr Address of exchange contract to remove
+function removeExchangeAddress(address addr)
+    external
+    onlyAuthorized;
+
+/// @dev Returns true iff the input address is a valid exchange.
+function validExchanges(address addr)
+    public
+    returns (bool isValid);
+```
+
+### 3.8 Forcing Catastrophic Failure after Prolonged Read-Only Mode
 
 After the system has been in Read-Only mode for 40 days, anyone can force the ZRX Vault into Catastrophic Failure Mode by calling into the ZRX Vault Backstop contract.
 
@@ -179,6 +200,10 @@ After the system has been in Read-Only mode for 40 days, anyone can force the ZR
 function enterCatastrophicFailureIfProlongedReadOnlyMode()
     external;
 ```
+
+#### 3.8.1 Logic of enterCatastrophicFailureIfProlongedReadOnlyMode
+#### 3.8.2 Errors by enterCatastrophicFailureIfProlongedReadOnlyMode
+
 
 ## 4 Epochs & Scheduling
 
