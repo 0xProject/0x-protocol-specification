@@ -260,6 +260,13 @@ function decodeOrdersFromFillData(bytes memory data)
     returns (LibOrder.Order[] memory orders);
 ```
 
+### Protocol Fees
+
+The Coordinator contract can pay [protocol fees](https://github.com/0xProject/0x-protocol-specification/blob/master/v3/v3-specification.md#protocol-fees) in either ETH or WETH.
+Any ETH that is sent in a `Coordinator.executeTransaction` will be forwarded to the `Exchange` contract. For each order filled in the transaction, the `Exchange` will attempt to pay the protocol fee using ETH, and fall back to charging WETH from the taker if there is not enough. Any ETH value left over at the end is returned to the transaction sender.
+
+Note that if the transaction is submitted by someone besides the taker (e.g. by the Coordinator operator), the sender can subsidize the protocol fee on behalf of the taker by sending enough ETH in the `Coordinator.executeTransaction` to cover one or more orders.
+
 ## CoordinatorRegistry
 
 The CoordinatorRegistry contract allows Coordinators to register their Coordinator API endpoints in a central contract for greater discoverability.
