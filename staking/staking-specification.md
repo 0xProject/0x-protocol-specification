@@ -63,7 +63,7 @@ This system is composed of four deployed contracts:
 |Staking Proxy|Stores staking state and delegates to the Staking Contract|
 |Read-Only Proxy|Forces read-only calls to the Staking Contract|
 |ZRX Vault|Securely holds staked ZRX Tokens|
-|ZRX Vault Backstop|Failsafe allowing users to withdraw their ZRX directly from the ZRX Vault.|
+|ZRX Vault Backstop|Failsafe allowing users to withdraw their ZRX directly from the ZRX Vault|
 
 The diagram below shows how these contracts connect to each other and the broader 0x ecosystem.
 
@@ -100,6 +100,7 @@ This section outlines steps for managing the system of smart contracts. Operatio
 3. Deploy Staking Proxy.
 4. Deploy Read-Only Proxy.
 5. Attach Staking Contract to Staking Proxy.
+6. Deploy ZRX Vault Backstop.
 
 ### 3.2 Upgrading Staking Proxy
 
@@ -127,8 +128,8 @@ The staking contracts share the Exchange's ERC20 proxy. It is possible this cont
 
 Configurable parameters can be set or queried using the functions below.
 
-```
- /// @dev Set all configurable parameters at once.
+```solidity
+/// @dev Set all configurable parameters at once.
 /// @param _epochDurationInSeconds Minimum seconds between epochs.
 /// @param _rewardDelegatedStakeWeight How much delegated stake is weighted vs operator stake, in ppm.
 /// @param _minimumPoolStake Minimum amount of stake required in a pool to collect rewards.
@@ -166,11 +167,11 @@ function getParams()
 
 After the system has been in Read-Only mode for 40 days, anyone can force the ZRX Vault into Catastrophic Failure Mode by calling into the ZRX Vault Backstop contract.
 
-```
-    /// @dev Triggers catastophic failure mode in the zrxzVault iff read-only mode
-    ///      has been continuously set for at least 40 days.
-    function enterCatastrophicFailureIfProlongedReadOnlyMode()
-        external;
+```solidity
+/// @dev Triggers catastophic failure mode in the zrxzVault iff read-only mode
+///      has been continuously set for at least 40 days.
+function enterCatastrophicFailureIfProlongedReadOnlyMode()
+    external;
 ```
 
 ## 4 Epochs & Scheduling
@@ -183,7 +184,7 @@ All processes in the system are segmented into nonoverlapping time intervals, ca
 
 A new epoch automatically begins when the current epoch ends. Anyone can "end" an epoch by calling the staking contract after the minimum epoch period has elapsed.
 
-```
+```solidity
 function endEpoch()
     external
     returns (uint256 poolsRemaining);
@@ -202,7 +203,7 @@ ZRX can simlarly be unstaked by withdrawing tokens from the Staking contract. Ho
 
 Below is the interface for staking and unstaking.
 
-```
+```solidity
 /// @dev Stake ZRX tokens. Tokens are deposited into the ZRX Vault.
 /// @param amount of ZRX to stake.
 function stake(uint256 amount) external;
@@ -236,7 +237,7 @@ Each staked ZRX has an associated status that reflects its utility within the 0x
 | Delegated | ZRX is delegated to a pool; can be used in governance + contribute to liquidity rewards. |
 
 There is a single function for moving stake between statuses:
-```
+```solidity
 /// @dev Statuses that stake can exist in.
 enum StakeStatus {
     ACTIVE,
@@ -270,7 +271,7 @@ Note that when stake is moved its new status comes into effect on the _next epoc
 
 The interface below describes how to query balances in the Staking Contract.
 
-```
+```solidity
 /// @dev Balance struct for stake.
 /// @param currentEpochBalance Balance in the current epoch.
 /// @param nextEpochBalance Balance in the next epoch.
@@ -384,7 +385,7 @@ The interface below describes how to create a pool, add market making addresses,
 Note that a single staker can operate several pools, but a market making address can only belong to one pool.
 Note also that the operator's reward share can only be decreased: so the change can only ever benefit pool members.
 
-```
+```solidity
 /// @dev Create a new staking pool. The sender will be the operator of this pool.
 /// Note that an operator must be payable.
 /// @param operatorShare Portion of rewards owned by the operator, in ppm.
@@ -468,7 +469,7 @@ The Cobb-Douglas function is used to compute how much of the aggregate fees shou
 
 At the end of an epoch, each pool that traded can retrieve their liquidity reward. This is done by calling the finalize function. Dust pools (that have )
 
-```
+```solidity
 /// @dev Instantly finalizes a single pool that was active in the previous
 ///      epoch, crediting it rewards for members and withdrawing operator's
 ///      rewards as WETH. This can be called by internal functions that need
@@ -490,7 +491,7 @@ function finalizePool(bytes32 poolId)
 
 Each pool has until the end of the current epoch to finalize their pool for the previous epoch. During finalization the market maker will be paid their % of the reward in WETH. Pool members are paid when they modify how much stake they've delegated to the pool (or undelegate). Alternatively, members can retrieve their reward in WETH by calling the withdraw function.
 
-```
+```solidity
 /// @dev Syncs rewards for a delegator. This includes transferring WETH
 ///      rewards to the delegator, and adding/removing
 ///      dependencies on cumulative rewards.
@@ -503,7 +504,7 @@ function withdrawDelegatorRewards(bytes32 poolId) external;
 
 Both operators and delegators can compute their unpaid balance in a pool using the functions below.
 
-```
+```solidity
 /// @dev Computes the reward balance in ETH of the operator of a pool.
 /// @param poolId Unique id of pool.
 /// @return totalReward Balance in ETH.
@@ -526,7 +527,7 @@ function computeRewardBalanceOfDelegator(bytes32 poolId, address member)
 
 The staking contract supports arbitrary batch function calls to the staking logic contract, allowing for several operations in a single transaction. For example, finalizing several pools in one transaction.
 
-```
+```solidity
 /// @dev Batch executes a series of calls to the staking contract.
 /// @param data An array of data that encodes a sequence of functions to
 ///             call in the staking contracts.
@@ -535,32 +536,42 @@ function batchExecute(bytes[] calldata data)
     returns (bytes[] memory batchReturnData);
 ```
 
-## 8 Staking Events
+## 8 Contract Interfaces and Internal Logic
+
+### 8.1 Staking Proxy
+
+### 8.2 Staking Contract
+
+### 8.2 Staking Contract
+
+### 8.2 Staking Contract
+
+### 8.2 Staking Events
 
 The events below are defined in [IStakingEvents](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IStakingEvents.sol).
 
-```
+```solidity
 /// @dev Emitted by MixinStake when ZRX is staked.
-/// @param owner of ZRX.
+/// @param staker of ZRX.
 /// @param amount of ZRX staked.
 event Stake(
-    address indexed owner,
+    address indexed staker,
     uint256 amount
 );
 
 /// @dev Emitted by MixinStake when ZRX is unstaked.
-/// @param owner of ZRX.
+/// @param staker of ZRX.
 /// @param amount of ZRX unstaked.
 event Unstake(
-    address indexed owner,
+    address indexed staker,
     uint256 amount
 );
 
 /// @dev Emitted by MixinStake when ZRX is unstaked.
-/// @param owner of ZRX.
+/// @param staker of ZRX.
 /// @param amount of ZRX unstaked.
 event MoveStake(
-    address indexed owner,
+    address indexed staker,
     uint256 amount,
     uint8 fromStatus,
     bytes32 indexed fromPool,
@@ -580,24 +591,23 @@ event ExchangeRemoved(
     address exchangeAddress
 );
 
-/// @dev Emitted by MixinExchangeFees when a pool pays protocol fees
-///      for the first time in an epoch.
-/// @param epoch The epoch in which the pool was activated.
+/// @dev Emitted by MixinExchangeFees when a pool starts earning rewards in an epoch.
+/// @param epoch The epoch in which the pool earned rewards.
 /// @param poolId The ID of the pool.
-event StakingPoolActivated(
+event StakingPoolEarnedRewardsInEpoch(
     uint256 indexed epoch,
     bytes32 indexed poolId
 );
 
 /// @dev Emitted by MixinFinalizer when an epoch has ended.
-/// @param epoch The closing epoch.
-/// @param numActivePools Number of active pools in the closing epoch.
-/// @param rewardsAvailable Rewards available to all active pools.
-/// @param totalWeightedStake Total weighted stake across all active pools.
-/// @param totalFeesCollected Total fees collected across all active pools.
+/// @param epoch The epoch that ended.
+/// @param numPoolsToFinalize Number of pools that earned rewards during `epoch` and must be finalized.
+/// @param rewardsAvailable Rewards available to all pools that earned rewards during `epoch`.
+/// @param totalWeightedStake Total weighted stake across all pools that earned rewards during `epoch`.
+/// @param totalFeesCollected Total fees collected across all pools that earned rewards during `epoch`.
 event EpochEnded(
     uint256 indexed epoch,
-    uint256 numActivePools,
+    uint256 numPoolsToFinalize,
     uint256 rewardsAvailable,
     uint256 totalFeesCollected,
     uint256 totalWeightedStake
@@ -629,20 +639,14 @@ event RewardsPaid(
 /// @param epochDurationInSeconds Minimum seconds between epochs.
 /// @param rewardDelegatedStakeWeight How much delegated stake is weighted vs operator stake, in ppm.
 /// @param minimumPoolStake Minimum amount of stake required in a pool to collect rewards.
-/// @param maximumMakersInPool Maximum number of maker addresses allowed to be registered to a pool.
 /// @param cobbDouglasAlphaNumerator Numerator for cobb douglas alpha factor.
 /// @param cobbDouglasAlphaDenominator Denominator for cobb douglas alpha factor.
-/// @param wethProxyAddress The address that can transfer WETH for fees.
-/// @param zrxVaultAddress Address of the ZrxVault contract.
 event ParamsSet(
     uint256 epochDurationInSeconds,
     uint32 rewardDelegatedStakeWeight,
     uint256 minimumPoolStake,
-    uint256 maximumMakersInPool,
     uint256 cobbDouglasAlphaNumerator,
-    uint256 cobbDouglasAlphaDenominator,
-    address wethProxyAddress,
-    address zrxVaultAddress
+    uint256 cobbDouglasAlphaDenominator
 );
 
 /// @dev Emitted by MixinStakingPool when a new pool is created.
@@ -655,28 +659,12 @@ event StakingPoolCreated(
     uint32 operatorShare
 );
 
-/// @dev Emitted by MixinStakingPool when a new maker requests to join a pool.
-/// @param poolId Unique id of pool.
-/// @param makerAddress Adress of maker joining the pool.
-event PendingAddMakerToPool(
-    bytes32 indexed poolId,
-    address makerAddress
-);
-
-/// @dev Emitted by MixinStakingPool when a new maker is added to a pool.
-/// @param poolId Unique id of pool.
+/// @dev Emitted by MixinStakingPool when a maker sets their pool.
 /// @param makerAddress Adress of maker added to pool.
-event MakerAddedToStakingPool(
-    bytes32 indexed poolId,
-    address makerAddress
-);
-
-/// @dev Emitted by MixinStakingPool when a maker is removed from a pool.
 /// @param poolId Unique id of pool.
-/// @param makerAddress Adress of maker added to pool.
-event MakerRemovedFromStakingPool(
-    bytes32 indexed poolId,
-    address makerAddress
+event MakerStakingPoolSet(
+    address indexed makerAddress,
+    bytes32 indexed poolId
 );
 
 /// @dev Emitted when a staking pool's operator share is decreased.
@@ -753,7 +741,7 @@ Example:
 With the cumulative reward along with the stored balance of a member, we are able to compute their reward in the pool at any time.
 
 This information is stored on-chain as follows:
-```
+```solidity
 // mapping from Owner to Pool Id to Amount Delegated
 mapping (address  =>  mapping (bytes32  => StoredBalance)) internal _delegatedStakeToPoolByOwner;
 
@@ -785,7 +773,7 @@ In this case, there will be `nil` entry in `cumulativeRewardsByPool`. However, t
 
 We keep track of the last epoch that the `cumulativeRewardsByPool` was updated in using the following state variable:
 
-```
+```solidity
 // mapping from Pool Id to Epoch
 mapping (bytes32  =>  uint256) internal cumulativeRewardsByPoolLastStored;
 ```
