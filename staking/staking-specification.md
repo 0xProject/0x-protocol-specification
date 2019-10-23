@@ -367,7 +367,15 @@ Note that a single staker can operate several pools, but a market making address
 Note also that the operator's reward share can only be decreased: so the change can only ever benefit pool members.
 
 ```solidity
-/// @dev Create a new staking pool. The sender will be the operator of this pool.
+/// @dev Holds the metadata for a staking pool.
+/// @param operator of the pool.
+/// @param operatorShare Fraction of the total balance owned by the operator, in ppm.
+struct Pool {
+    address operator;
+    uint32 operatorShare;
+}
+
+//// @dev Create a new staking pool. The sender will be the operator of this pool.
 /// Note that an operator must be payable.
 /// @param operatorShare Portion of rewards owned by the operator, in ppm.
 /// @param addOperatorAsMaker Adds operator to the created pool as a maker for convenience iff true.
@@ -376,60 +384,24 @@ function createStakingPool(uint32 operatorShare, bool addOperatorAsMaker)
     external
     returns (bytes32 poolId);
 
-/// @dev Adds a maker to a staking pool. Note that this is only callable by the pool operator.
-/// Note also that the maker must have previously called joinStakingPoolAsMaker.
+/// @dev Decreases the operator share for the given pool (i.e. increases pool rewards for members).
+/// @param poolId Unique Id of pool.
+/// @param newOperatorShare The newly decreased percentage of any rewards owned by the operator.
+function decreaseStakingPoolOperatorShare(bytes32 poolId, uint32 newOperatorShare)
+    external
+    onlyStakingPoolOperator(poolId);
+
+/// @dev Allows caller to join a staking pool as a maker.
 /// @param poolId Unique id of pool.
-/// @param makerAddress Address of maker.
-function addMakerToStakingPool(
-    bytes32 poolId,
-    address makerAddress
-) external;
-
-/// @dev Allows caller to join a staking pool if already assigned.
-/// @param poolId Unique id of pool.
-function joinStakingPoolAsMaker(bytes32 poolId) external;
-
-/// @dev Removes a maker from a staking pool. Note that this is only callable by the pool operator or maker.
-/// Note also that the maker does not have to *agree* to leave the pool; this action is
-/// at the sole discretion of the pool operator.
-/// @param poolId Unique id of pool.
-/// @param makerAddress Address of maker.
-function removeMakerFromStakingPool(
-    bytes32 poolId,
-    address makerAddress
-) external;
-
-/// @dev Returns the pool id of the input maker.
-/// @param makerAddress Address of maker
-/// @return Pool id, nil if maker is not yet assigned to a pool.
-function getStakingPoolIdOfMaker(address makerAddress)
-    public
-    view
-    returns (bytes32);
-
-/// @dev Holds the metadata for a staking pool.
-/// @param initialized True iff the balance struct is initialized.
-/// @param operator of the pool.
-/// @param operatorShare Fraction of the total balance owned by the operator, in ppm.
-/// @param numberOfMakers Number of makers in the pool.
-struct Pool {
-    bool initialized;
-    address payable operator;
-    uint32 operatorShare;
-    uint32 numberOfMakers;
-}
+function joinStakingPoolAsMaker(bytes32 poolId)
+    public;
 
 /// @dev Returns a staking pool
 /// @param poolId Unique id of pool.
 function getStakingPool(bytes32 poolId)
     public
     view
-    returns (Pool memory);
-
-/// @dev Decreases the operator share for the given pool (i.e. increases pool rewards for members).
-/// @param poolId Unique Id of pool.
-/// @param newOperatorShare The newly decreased percentage of any rewards owned by the operator.
-function decreaseStakingPoolOperatorShare(bytes32 poolId, uint32 newOperatorShare) external;
+    returns (IStructs.Pool memory);
 ```
 
 ### 6.2 Paying Liquidity Rewards (Finalization)
