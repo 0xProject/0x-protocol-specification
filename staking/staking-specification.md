@@ -480,6 +480,21 @@ function batchExecute(bytes[] calldata data)
 
 ### 8.1 Staking Contract
 
+|Function|Description|
+|--|--|
+| `solidity cobbDouglasAlphaDenominator` | |
+| | |
+| | |
+| | |
+| | |
+| | |
+| | |
+| | |
+| | |
+| | |
+| | |
+| | |
+
 ### 8.2 Staking Proxy
 
 ### 8.3 Read-Only Proxy
@@ -623,6 +638,8 @@ event OperatorShareDecreased(
 ```
 
 ### 9.1 Staking Proxy
+
+
 
 ### 9.2 Read-Only Proxy
 
