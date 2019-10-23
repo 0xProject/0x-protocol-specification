@@ -345,7 +345,7 @@ function getTotalStakeDelegatedToPool(bytes32 poolId)
 
 Liquidity incentives are used to align market participants with long-term objectives of the 0x protocol. Fees are charged by the 0x protocol and paid to market makers as a reward for their trade volume and amount of ZRX staked.
 
-<p align="center"><img src="./assets/ProtocolFee.png" width="700" /></p>
+<p align="center"><img src="./assets/ProtocolFee.png" width="750" /></p>
 
 The protocol fee is paid in either WETH or ETH. If ETH is not included in the transaction (by setting `msg.value`) then the fee will be taken in WETH from the taker, as illustrated in the diagram above.
 
