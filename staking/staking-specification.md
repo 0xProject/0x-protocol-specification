@@ -482,7 +482,7 @@ function batchExecute(bytes[] calldata data)
 
 |Function|Description|
 |--|--|
-| `solidity cobbDouglasAlphaDenominator` | |
+| ```solidity cobbDouglasAlphaDenominator``` | |
 | | |
 | | |
 | | |
