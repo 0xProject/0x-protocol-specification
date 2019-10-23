@@ -219,6 +219,18 @@ function endEpoch()
 
 The return value describes the number of pools to finalize; this concept is described in [Section 6.2](#62-paying-liquidity-rewards-finalization).
 
+#### 4.1 Logic of `endEpoch`
+
+When this function is called:
+1. Assert the previous epoch (`currentEpoch-1`) is finalized: all rewards have been paid to pools.
+2. Wrap any ETH into WETH (protocol fees can be earned in ETH or WETH, but rewards are paid in WETH).
+3. Store statistics on the epoch, including the total WETH in the contract - this value is the total reward available to pools.
+4. Emit `EpochEnded` event.
+5. Assert that enough time has elapsed to increment the epoch.
+6. Increment the `currentEpoch` by 1.
+7. If no pools earned rewards this epoch then the epoch is implicitly finalized; emit the `EpochFinalized` event.
+
+#### 4.1 Errors by `endEpoch`
 
 ## 5 Staking
 
