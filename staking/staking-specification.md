@@ -182,15 +182,19 @@ All processes in the system are segmented into nonoverlapping time intervals, ca
 
 ### 4.1 Ending One Epoch, and Starting a New One
 
-A new epoch automatically begins when the current epoch ends. Anyone can "end" an epoch by calling the staking contract after the minimum epoch period has elapsed.
+A new epoch automatically begins when the current epoch ends. Anyone can end an epoch by calling the staking contract after the minimum epoch period has elapsed.
 
 ```solidity
+/// @dev Begins a new epoch, preparing the prior one for finalization.
+///      Throws if not enough time has passed between epochs or if the
+///      previous epoch was not fully finalized.
+/// @return numPoolsToFinalize The number of unfinalized pools.
 function endEpoch()
     external
-    returns (uint256 poolsRemaining);
+    returns (uint256 numPoolsToFinalize)
 ```
 
-Note: The return value (`poolsRemaining`) is described in detail in Section 7 Liquidity Rewards.
+The return value describes the number of pools to finalize; this concept is described in [Section 6.2](#62-paying-liquidity-rewards-finalization).
 
 
 ## 5 Staking
