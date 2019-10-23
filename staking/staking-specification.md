@@ -486,15 +486,14 @@ function batchExecute(bytes[] calldata data)
 
 ### 8.1 Staking Contract
 
-
-
 |Function|Description|Implementation|
 |--|--|--|
-|`addExchangeAddress`|Adds an exchange address that will pay protocol fees.|[MixinExchangeManager](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/fees/MixinExchangeManager.sol)|
+|`addExchangeAddress`|Adds an exchange address that will pay protocol fees.|[MixinExchangeManager](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/fees/MixinExchangeManager.sol#43)|
+|`aggregatedStatsByEpoch`|Returns aggregated stats across all pools that generated fees with sufficient stake to earn rewards.|[MixinStorage](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/immutable/MixinStorage.sol#112)
 
 
 
-aggregatedStatsByEpoch
+
 
 cobbDouglasAlphaDenominator
 
