@@ -15,6 +15,7 @@
 <br>&nbsp;&nbsp;&nbsp;&nbsp;[3.4 Upgrading ZRX Vault](#34-upgrading-zrx-vault)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;[3.5 Handling upgrades to the ERC20 Proxy or ERC20 Asset Data](#36-handling-upgrades-to-the-erc20-proxy-or-erc20-asset-data)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;[3.6 Setting Parameters](#37-setting-parameters)
+<br>&nbsp;&nbsp;&nbsp;&nbsp;[3.7 Forcing Catastrophic Failure after Prolonged Read-Only Mode](#37-forcing-catastrophic-failure-after-prolonged-read-only-Mode)
 <br>[4 Epochs & Scheduling](#4-epochs--scheduling)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;[4.1 Ending One Epoch, and Starting a New One](#41-ending-one-epoch-and-starting-a-new-one)
 <br>[5 Staking](#5-staking)
@@ -52,7 +53,7 @@ Staking pools can also be used to increase voting power. Delegators share a port
 
 ## 2 Architecture
 
-The smart contract architecture is derived from the proxy pattern, which allows state to be retained across upgrades to the logic. Upgrades are controlled by the 0x multisig with a
+The smart contract architecture is derived from the proxy pattern, which allows state to be retained across upgrades to the logic.
 
 This system is composed of four deployed contracts:
 
@@ -90,7 +91,7 @@ In this worst-case scenario, state has been irreparably corrupted and the stakin
 
 ## 3 Contract Migrations
 
-This section outlines steps for managing the system of smart contracts. Operations are atomically executed as a group.
+This section outlines steps for managing the system of smart contracts. Operations are atomically executed as a group. Contracts are owned by the 0x Multisig.
 
 ### 3.1 Deploying the system
 
@@ -115,14 +116,14 @@ This section outlines steps for managing the system of smart contracts. Operatio
 
 The ZRX Vault address is hardcoded in the Staking Contract and should not be upgraded. If it does need to be changed, then set the current ZRX Vault into Catastrophic Failure mode (allowing users to withdraw their ZRX) and redeploy the entire system (section 3.1).
 
-### 3.6 Handling upgrades to the ERC20 Proxy or ERC20 Asset Data
+### 3.5 Handling upgrades to the ERC20 Proxy or ERC20 Asset Data
 
 The staking contracts share the Exchange's ERC20 proxy. It is possible this contract could get re-deployed for reasons outside of staking.
 
 1. Update the ERC20 Asset Proxy in the ZRX Vault.
 2. Update the ZRX Asset Data (if necessary) in the ZRX Vault.
 
-### 3.7 Setting Parameters
+### 3.6 Setting Parameters
 
 Configurable parameters can be set or queried using the functions below.
 
@@ -163,6 +164,16 @@ function getParams()
     );
 ```
 
+### 3.7 Forcing Catastrophic Failure after Prolonged Read-Only Mode
+
+After the system has been in Read-Only mode for 40 days, anyone can force the ZRX Vault into Catastrophic Failure Mode by calling into the ZRX Vault Backstop contract.
+
+```
+    /// @dev Triggers catastophic failure mode in the zrxzVault iff read-only mode
+    ///      has been continuously set for at least 40 days.
+    function enterCatastrophicFailureIfProlongedReadOnlyMode()
+        external;
+```
 
 ## 4 Epochs & Scheduling
 
