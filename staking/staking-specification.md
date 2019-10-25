@@ -75,7 +75,7 @@
 
 ## 1 Overview
 
-This spec outlines the design principles and constraints of the liquidity incentive mechanism, along with its architecture, implementation and usage.
+This spec outlines the architecture, implementation and usage of the 0x stake-based liquidity incentives.
 
 ### 1.1 Motivation
 
@@ -85,11 +85,15 @@ Staking aligns all market participants with the long-term mission and objectives
 
 Token holders stake their ZRX to unlock utility within the 0x ecosystem. This includes earning liquidity rewards through market making on the 0x protocol and participating in governance over the protocol.
 
+A market maker provides liquidity by creating 0x orders that are filled by takers through the Exchange contract. The Exchange charges a fee to the taker on each fill and forwards it to the Staking contract. The fee is attributed to the maker so long as they have created a staking pool that holds at least 100 ZRX. Every 10 days, the fees are aggregated and distributed to the makers as a liquidity reward: the reward is proportional to the maker's trade volume and stake, relative to other makers.
+
+Governance over the protocol is conducted by voting on [ZEIPs (ZeroEx Improvement Proposals)](https://github.com/0xProject/ZEIPs). A ZEIP generally corresponds to a modification or upgrade to the 0x protocol. The ecosystem votes on the proposal, collectively deciding whether the feature will be included in a future version of the protocol. Historically, votes have been carried out by computing the ZRX held in a voter's wallet; with the  the amount of ZRX staked by a wallet will be used: 1 Staked ZRX equals 1 Vote.
+
 ### 1.3 Staking Pools
 
-Staking pools can be created to leverage the weight of other stakers. For example, market makers earn liquidity rewards proportional to both their trade volume and amount of stake delegated to their pool. Delegators, in turn, can earn a portion of the pool's liquidity reward.
+Staking pools are created to leverage the weight of other stakers. A market maker, for example, can increase their liquidity reward without exposing themselves to the price fluctuations of the ZRX token. Market makers, in turn, incentivize delegators to contribute their ZRX by paying them a portion of the liquidity reward.
 
-Staking pools can also be used to increase voting power. Delegators share a portion of their vote with the pool, amplifying the pool's impact in governance over 0x. Delegation creates a level playing field across all types of assets and classes of market makers, large or small.
+Staking pools can also be used to increase voting power. Delegators share a portion of their vote with the pool (50% of their vote goes to the pool operator and 50% is retained by the delegator), amplifying the pool's impact in governance over 0x. This allows stakers to form cliques within the greater governance system.
 
 ## 2 Architecture
 
