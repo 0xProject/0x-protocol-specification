@@ -75,7 +75,7 @@
 
 ## 1 Overview
 
-This spec outlines the architecture, implementation and usage of the 0x stake-based liquidity incentives.
+This spec outlines the architecture, implementation and usage of 0x stake-based liquidity incentives.
 
 ### 1.1 Motivation
 
@@ -87,7 +87,7 @@ Token holders stake their ZRX to unlock utility within the 0x ecosystem. This in
 
 A market maker provides liquidity by creating 0x orders that are filled by takers through the Exchange contract. The Exchange charges a fee to the taker on each fill and forwards it to the Staking contract. The fee is attributed to the maker so long as they have created a staking pool that holds at least 100 ZRX. Every 10 days, the fees are aggregated and distributed to the makers as a liquidity reward: the reward is proportional to the maker's trade volume and stake, relative to other makers.
 
-Governance over the protocol is conducted by voting on [ZEIPs (ZeroEx Improvement Proposals)](https://github.com/0xProject/ZEIPs). A ZEIP generally corresponds to a modification or upgrade to the 0x protocol. The ecosystem votes on the proposal, collectively deciding whether the feature will be included in a future version of the protocol. Historically, votes have been carried out by computing the ZRX held in a voter's wallet; with the  the amount of ZRX staked by a wallet will be used: 1 Staked ZRX equals 1 Vote.
+Governance over the protocol is conducted by voting on [ZEIPs (ZeroEx Improvement Proposals)](https://github.com/0xProject/ZEIPs). A ZEIP generally corresponds to a modification or upgrade to the 0x protocol. The ecosystem votes on the proposal, collectively deciding whether the feature will be included in a future version of the protocol. One Staked ZRX equals one vote.
 
 ### 1.3 Staking Pools
 
@@ -99,7 +99,7 @@ Staking pools can also be used to increase voting power. Delegators share a port
 
 The smart contract architecture is derived from the proxy pattern, which allows state to be retained across upgrades to the logic.
 
-This system is composed of four deployed contracts:
+This system is composed of five contracts:
 
 |Contract|Description |
 |--|--|
@@ -129,9 +129,10 @@ In this worst-case scenario, state has been irreparably corrupted and the stakin
 
 1. The ZRX vault is detached from the staking contract.
 2. Users withdraw their funds from the ZRX vault directly.
-3. Anyone can enable Catastrophic Failure Mode by calling the ZRX Vault Backstop after the system has been in Read-Only Mode for 40 days.
 
 <p align="center"><img src="./assets/Staking%20Architecture%20-%20Catastrophic%20Failure.png" width="750" /></p>
+
+Note: Anyone can enable Catastrophic Failure Mode by calling the ZRX Vault Backstop after the system has been in Read-Only Mode for 40 days.
 
 ## 3 Contract Migrations
 
@@ -243,7 +244,7 @@ function enterCatastrophicFailureIfProlongedReadOnlyMode()
 
 ## 4 Epochs & Scheduling
 
-All processes in the system are segmented into nonoverlapping time intervals, called epochs. Epochs have a fixed minimum period (10 days at time of writing), which is configurable via [MixinParams](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/sys/MixinParams.sol). Epochs serve as the basis for all other timeframes within the system, which provides a more stable and consistent scheduling metric than timestamps.
+All processes in the system are segmented into contiguous time intervals, called epochs. Epochs have a fixed minimum period (10 days at time of writing), which is configurable via [MixinParams](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/sys/MixinParams.sol). Epochs serve as the basis for all other timeframes within the system, which provides a more stable and consistent scheduling metric than blocks or block timestamps.
 
 <p align="center"><img src="./assets/Epochs.png" width="700" /></p>
 
@@ -267,11 +268,11 @@ The return value describes the number of pools to finalize; this concept is desc
 
 When this function is called:
 1. Assert the previous epoch (`currentEpoch-1`) is finalized: all rewards have been paid to pools.
-2. Wrap any ETH into WETH (protocol fees can be earned in ETH or WETH, but rewards are paid in WETH).
+2. Wrap any ETH into WETH (protocol fees can be paid in ETH or WETH, but rewards are always paid in WETH).
 3. Store statistics on the epoch, including the total WETH in the contract - this value is the total reward available to pools.
 4. Emit [EpochEnded](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IStakingEvents.sol#L60) event.
 5. Assert that enough time has elapsed to increment the epoch.
-6. Increment the `currentEpoch` by 1.
+6. Increase the `currentEpoch` by 1.
 7. If no pools earned rewards this epoch then the epoch is implicitly finalized; emit the [EpochFinalized](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IStakingEvents.sol#L72) Event.
 
 #### 4.1 Errors by `endEpoch`
@@ -311,7 +312,7 @@ function unstake(uint256 amount)
 
 1. Deposit ZRX tokens into ZRX Vault.
 2. ZRX Vault emits the [Deposit](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IZrxVault.sol#L34) event.
-3. Increment the sender's stake balance.
+3. Increase the sender's stake balance.
 4. Emit the [Stake](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IStakingEvents.sol#L9) event.
 
 #### 5.0.2 Errors by `stake`
@@ -389,7 +390,7 @@ function moveStake(
     external;
 ```
 
-Note that when stake is moved its new status comes into effect on the _next epoch_. Stake's status remains unchanged over the duration of an epoch.
+Note that when stake is moved its new status comes into effect on the _next epoch_. Stake's status remains unchanged over the duration of an epoch. See [section 11.4](#114-stake-management) for informaton on the implementation of stake accounting.
 
 #### 5.2.1 Logic of `moveStake`
 
