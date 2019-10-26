@@ -17,7 +17,7 @@
 <br>&nbsp;&nbsp;&nbsp;&nbsp;[3.6 Setting Parameters](#36-setting-parameters)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;[3.7 Managing Exchange Addresses](#37-managing-exchange-addresses)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;[3.8 Forcing Catastrophic Failure after Prolonged Read-Only Mode](#38-forcing-catastrophic-failure-after-prolonged-read-only-mode)
-<br>[4 Epochs & Scheduling](#4-epochs---scheduling)
+<br>[4 Epochs & Scheduling](#4-epochs--scheduling)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;[4.1 Ending One Epoch, and Starting a New One](#41-ending-one-epoch-and-starting-a-new-one)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[4.1 Logic of `endEpoch`](#41-logic-of-endepoch)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[4.1 Errors by `endEpoch`](#41-errors-by-endepoch)
@@ -64,11 +64,11 @@
 <br>&nbsp;&nbsp;&nbsp;&nbsp;[10.3 Read-Only Proxy Contract](#103-read-only-proxy-contract)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;[10.4 ZRX Vault](#104-zrx-vault)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;[10.5 ZRX Vault Backstop](#105-zrx-vault-backstop)
-<br>[11 Algorithms, Data Structures & Design Patterns](#11-algorithms--data-structures-design-patterns)
+<br>[11 Algorithms, Data Structures & Design Patterns](#11-algorithms-data-structures--design-patterns)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;[11.1 Securing the Proxy Pattern](#111-securing-the-proxy-pattern)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;[11.2 The Read-Only Proxy](#112-the-read-only-proxy)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;[11.3 Tracking for Reward Balances for Pool Members](#113-tracking-for-reward-balances-for-pool-members)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[11.3.1 Computing Rewards - in Practice](#1131-computing-rewards-in-practice)
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[11.3.1 Computing Rewards in Practice](#1131-computing-rewards-in-practice)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[11.3.2 Handling Epochs With No Rewards](#1132-handling-epochs-with-no-rewards)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;[11.4 Stake Management](#114-stake-management)
 
@@ -1525,7 +1525,7 @@ mapping (bytes32  => StoredBalance) internal _delegatedStakeByPoolId;
 mapping (bytes32  =>  mapping (uint256  => Fraction)) internal _cumulativeRewardsByPool;
 ```
 
-#### 11.3.1 Computing Rewards - in Practice
+#### 11.3.1 Computing Rewards in Practice
 
 In the equations above, a staker earned rewards from epochs `[0..n]`. This means that the staker modified between epochs `n` and stopped earning rewards in epoch `n+1`. So at the time of the call, we don't have access to the reward for epoch `n`.
 
