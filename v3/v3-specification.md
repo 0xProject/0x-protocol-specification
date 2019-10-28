@@ -6,7 +6,7 @@
 1.  [Contracts](#contracts)
     1.  [Exchange](#exchange)
     1.  [AssetProxy](#assetproxy)
-    1.  [AssetProxyOwner](#assetproxyowner)
+    1.  [ZeroExGovernor](#zeroexgovernor)
     1.  [Staking](#staking)
 1.  [Contract Interactions](#contract-interactions)
     1.  [Trade settlement](#trade-settlement)
@@ -32,7 +32,7 @@
 1.  [Events](#events)
     1.  [Exchange events](#exchange-events)
     1.  [AssetProxy events](#assetproxy-events)
-    1.  [AssetProxyOwner events](#assetproxyowner-events)
+    1.  [ZeroExGovernor events](#zeroexgovernor-events)
     1.  [Staking events](#staking-events)
 1.  [Types](#types)
 1.  [Rich Reverts](#rich-reverts)
@@ -53,7 +53,7 @@
 
 ## Exchange
 
-The Exchange contract contains the bulk of the business logic within 0x protocol. It is the entry point for:
+The `Exchange` contract contains the bulk of the business logic within 0x protocol. It is the entry point for:
 
 1.  Filling [orders](#orders)
 2.  Canceling [orders](#orders)
@@ -106,75 +106,16 @@ Currently, the protocol includes the following [`AssetProxy`](#assetproxy) contr
 - [`ERC721Proxy`](../asset-proxy/erc721-proxy.md)
 - [`ERC1155Proxy`](../asset-proxy/erc1155-proxy.md)
 - [`MultiAssetProxy`](../asset-proxy/multi-asset-proxy.md)
-- [`StaticCallAssetProxy`](../asset-proxy/static-call-proxy.md)
+- [`StaticCallProxy`](../asset-proxy/static-call-proxy.md)
+- [`ERC20BridgeProxy`](../asset-proxy/erc20-bridge-proxy.md)
 
-## AssetProxyOwner
+## ZeroExGovernor
 
-The `AssetProxyOwner` is a time-locked multi-signature wallet that has permission to perform administrative functions within the protocol. Submitted transactions must pass a 2 week timelock before they are executed. The timelock can only be bypassed to remove contract authorizations in case of emergencies (for example, if a vulnerability is discovered that puts user funds at risk).
-
-The `AssetProxyOwner` can perform the following functions:
-
-### Registering AssetProxy contracts
-
-[`AssetProxy`](#assetproxy) contracts must be registered in the `Exchange` contract in order to be utilized when filling orders. The `AssetProxyOwner` can register new `AssetProxy` contracts by calling the following function:
-
-```solidity
-/// @dev Registers an asset proxy to its asset proxy id.
-///      Once an asset proxy is registered, it cannot be unregistered.
-/// @param assetProxy Address of new asset proxy to register.
-function registerAssetProxy(address assetProxy)
-    external;
-```
-
-### Managing AssetProxy contract authorizations
-
-Most [`AssetProxy`](#assetproxy) require that the caller of their `transferFrom` function is authorized to make the call. The `AssetProxyOwner` is responsible for adding or removing authorizations (and may bypass the timelock when removing an authorization). This is also the mechanism used for upgrading the `Exchange` contract without redeploying each individual `AssetProxy`. A new `Exchange` contract can be authorized while the authorizations of old `Exchange` contracts are removed. Multiple contracts can also be simultaneously authorized.
-
-Note that only `Exchange` contracts are currently authorized, but it is possible for other contracts to be authorized in the future. Please see the individual `AssetProxy` specifications for details on how authorizations are added and removed.
-
-### Upgrading itself
-
-The `AssetProxyOwner` can transfer ownership of any contract for which it is the `owner` by calling the following function:
-
-```solidity
-/// @dev Transfers ownership to a new address.
-/// @param newOwner Address of the new owner.
-function transferOwnership(address newOwner)
-    public;
-```
-
-### Setting the protocol fee multiplier
-
-The `AssetProxyOwner` can update the [protocol fee multiplier](#calculating-the-protocol-fee) by calling the following function:
-
-```solidity
-/// @dev Allows the owner to update the protocol fee multiplier.
-/// @param updatedProtocolFeeMultiplier The updated protocol fee multiplier.
-function setProtocolFeeMultiplier(uint256 updatedProtocolFeeMultiplier)
-    external;
-```
-
-Setting the `protocolFeeMultiplier` will emit a [`ProtocolFeeMultiplier`](#protocolfeemultiplier) event.
-
-### Setting the protocol fee collector
-
-The `AssetProxyOwner` can update the protocol fee collector contract (currently the [Staking](#staking) contract) by calling the following function:
-
-```solidity
-/// @dev Allows the owner to update the protocolFeeCollector address.
-/// @param updatedProtocolFeeCollector The updated protocolFeeCollector contract address.
-function setProtocolFeeCollectorAddress(address updatedProtocolFeeCollector)
-    external;
-```
-
-Setting the `protocolFeeCollector` will emit a [`ProtocolFeeCollectorAddress`](#protocolfeecollectoraddress) event.
-
-TODO: add staking contract functions
-TODO: update with new `AssetProxyOwner`
+The `ZeroExGovernor` is a time-locked multi-signature wallet that has permission to perform administrative functions within the protocol. For specific information on its authorized functionality, please refer to the [ZeroExGovernor specification](./zero-ex-governor.md).
 
 ## Staking
 
-TODO: link to staking spec
+Please refer to the [Staking specification](../staking/staking-specification.md) for details on how the staking system is used within the protocol.
 
 # Contract Interactions
 
@@ -226,7 +167,7 @@ Transaction #1
 
 Every individual fill executed through the `Exchange` contract charges a protocol fee to the taker that is used to incentivize liquidity provision in the system.
 
-A detailed paper explaining the economics of protocol fees in 0x protocol can be found [here](./protocol-fees.pdf).
+A detailed paper explaining the economics of protocol fees in 0x protocol can be found [here](./protocol-fees.pdf). The [Staking specification](../staking/staking-specification.md#6-liquidity-incentives) also provides details on specific smart contract interactions and reward calculations within the system.
 
 ### Calculating the protocol fee
 
@@ -235,9 +176,6 @@ The protocol fee can be calculated with `tx.gasprice * protocolFeeMultiplier`, w
 ### Protocol fee denomination
 
 The protocol fee can be paid in either ETH or its [WETH](https://weth.io/) equivalent (denominated in wei). If it is not provided as value included in the message call, the [`Staking`](#staking) contract will attempt to transfer WETH from the taker's address to cover the fee instead. The `Exchange` contract assumes that the fee was correctly paid if the `Staking` contract's `payProtocolFee` function did not revert.
-
-TODO: add diagram
-TODO: add more detail after staking spec is added
 
 # Orders
 
@@ -688,8 +626,6 @@ In some special cases, multiple orders can be simultaneously filled without requ
 1. `(leftOrder.makerAssetAmount * rightOrder.makerAssetAmount) >= (leftOrder.takerAssetAmount * rightOrder.takerAssetAmount)`
 
 In other words, the 2 orders must represent a bid and an ask for the _exactly_ same asset pair and have a negative spread (or at the same price).
-
-TODO: add charts from ZEIP
 
 ### matchOrders
 
@@ -1650,13 +1586,13 @@ event AuthorizedAddressRemoved(
 );
 ```
 
-## AssetProxyOwner events
+## ZeroExGovernor events
 
-The following events must precede the execution of any function called by [`AssetProxyOwner`](#assetproxyowner) (with the exception of `removeAuthorizedAddressAtIndex`).
+The following events must precede the execution of any function called by [`ZeroExGovernor`](#zeroexgovernor) (with the exception of `removeAuthorizedAddressAtIndex`).
 
 ### Submission
 
-A `Submission` event is emitted when a new transaction is submitted to the [`AssetProxyOwner`](#assetproxyowner).
+A `Submission` event is emitted when a new transaction is submitted to the [`ZeroExGovernor`](#zeroexgovernor).
 
 ```solidity
 event Submission(uint256 indexed transactionId);
@@ -1664,7 +1600,7 @@ event Submission(uint256 indexed transactionId);
 
 ### Confirmation
 
-A `Confirmation` event is emitted when a transaction is confirmed by an individual owner of the [`AssetProxyOwner`](#assetproxyowner).
+A `Confirmation` event is emitted when a transaction is confirmed by an individual owner of the [`ZeroExGovernor`](#zeroexgovernor).
 
 ```solidity
 event Confirmation(
@@ -1686,7 +1622,7 @@ event ConfirmationTimeSet(
 
 ### Execution
 
-An `Execution` event is emitted whenever a transaction is executed through the `AssetProxyOwner`.
+An `Execution` event is emitted whenever a transaction is executed through the `ZeroExGovernor`.
 
 ```solidity
 event Execution(uint256 indexed transactionId);
@@ -1694,7 +1630,7 @@ event Execution(uint256 indexed transactionId);
 
 ## Staking events
 
-TODO: add events
+See the [Staking specification](../staking/staking-specification.md#10-events) for a list of events that are used within the system of staking contracts.
 
 # Types
 
@@ -2456,7 +2392,7 @@ Doing any sort of division in the EVM may result in rounding errors. [`fillOrder
 - `marketBuyOrders` and `marketSellOrders` have been deprecated
 - The addition of [`marketBuyOrdersFillOrKill`](#marketbuyordersfillorkill) and [`marketSellOrdersFillOrKill`](#marketsellordersfillorkill)
 - All of the `marketBuy*` and `marketSell*` functions now allow multiple different assets to be bought or sold (be careful with this!)
-- The ordering of transfers during a single fill has changed. A fill now first transfers an asset from the taker to the maker, opening up the ability to integrate the [`ERC20BuyerAsseyProxy`](https://github.com/0xProject/ZEIPs/issues/47) (along with other similar contracts)
+- The ordering of transfers during a single fill has changed. A fill now first transfers an asset from the taker to the maker, opening up the ability to integrate the [`ERC20BridgeProxy`](https://github.com/0xProject/ZEIPs/issues/47) (along with other similar contracts)
 
 ### Changes to order matching
 
