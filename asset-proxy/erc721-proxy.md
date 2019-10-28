@@ -70,7 +70,7 @@ NOTE: The `ERC721Proxy` does not enforce strict length checks for `assetData`, w
 
 ## Authorizations
 
-The `ERC721Proxy` has the following interface for managing which addresses are allowed to call this contract's `transferFrom` method. These authorization functions can only be called by the contract's `owner` (currently, the [`AssetProxyOwner`](v3/v3-specification.md#assetproxyowner) contract).
+The `ERC721Proxy` has the following interface for managing which addresses are allowed to call this contract's `transferFrom` method. These authorization functions can only be called by the contract's `owner` (currently, the [`ZeroExGovernor`](../v3/zero-ex-governor.md) contract).
 
 ```solidity
 contract IAuthorizable {

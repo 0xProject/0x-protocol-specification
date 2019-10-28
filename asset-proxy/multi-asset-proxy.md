@@ -84,7 +84,7 @@ Each element of `nestedAssetData` must be encoded according to the specification
 
 ## Authorizations
 
-The `MultiAssetProxy` has the following interface for managing which addresses are allowed to call this contract's `transferFrom` method. These authorization functions can only be called by the contract's `owner` (currently, the [`AssetProxyOwner`](../v3/v3-specification.md#assetproxyowner) contract).
+The `MultiAssetProxy` has the following interface for managing which addresses are allowed to call this contract's `transferFrom` method. These authorization functions can only be called by the contract's `owner` (currently, the [`ZeroExGovernor`](../v3/v3-specification.md#zeroexgovernor) contract).
 
 ```solidity
 contract IAuthorizable {
@@ -124,7 +124,7 @@ The contracts that are currently authorized to call the `MultiAssetProxy` contra
 
 ## Registering AssetProxy contracts
 
-The `MultiAssetProxy` can only dispatch transfers to other `AssetProxy` contracts that are registered within this contract. The `MultiAssetProxy` has the following interface for managing which `AssetProxy` contracts it is allowed to call. New registrations can only be initiated by the `owner` of this contract (currently, the [`AssetProxyOwner`](../v3/v3-specification.md#assetproxyowner) contract).
+The `MultiAssetProxy` can only dispatch transfers to other `AssetProxy` contracts that are registered within this contract. The `MultiAssetProxy` has the following interface for managing which `AssetProxy` contracts it is allowed to call. New registrations can only be initiated by the `owner` of this contract (currently, the [`ZeroExGovernor`](../v3/zero-ex-governor.md) contract).
 
 ```solidity
 contract IAssetProxyDispatcher {
@@ -158,3 +158,4 @@ The `AssetProxy` contracts that are currently registered withing the `MultiAsset
 - [`ERC721Proxy`](../asset-proxy/erc721-proxy.md)
 - [`ERC1155Proxy`](../asset-proxy/erc1155-proxy.md)
 - [`StaticCallProxy`](../asset-proxy/static-call-proxy.md)
+- [`ERC20BridgeProxy`](../asset-proxy/erc20-bridge-proxy.md)
