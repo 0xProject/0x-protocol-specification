@@ -8,6 +8,42 @@ For a full list of differences in the protocol refer to the [changelog here](htt
 
 [0x Starter Project](https://github.com/0xProject/0x-starter-project/tree/3.0)
 
+# Important information by use case
+
+## As a Market Maker
+
+* Sharing liquidity via Mesh is the fastest and widest distribution channel to reach prospective takers. Deploy your own Mesh node and subscribe to events to allow you to discover other orders and receive fill updates on your orders.  Mesh works with 0x v2, so it is good idea to become acquainted with Mesh and adopt it into your architecture before migrating to v3. [Mesh And Networked Liquidity](#mesh-and-networked-liquidity)
+* When transitioning to v3, the only required action is to cancel your v2 orders and create new orders on v3. Orders from v2 cannot be reposted to v3 as there is replay protection. Cancellation can be performed efficiently using `cancelOrdersUpTo` (if using an incrementing salt) or can be performed order by order with `batchCancelOrders`. Ensure your orders are cancelled on v2 prior to creating new orders on v3. 
+* Upgrade to the latest 0x packages using the `protocolV3` tag. For example,  `yarn upgrade @0x/order-utils@protocolV3`
+* The exchange address and order format changes from v2 to v3, see [Order Format](#order-format). Mainnet Exchange address is TBD.
+* As part of the 0x governance upgrade, the ERC20 approvals set on the 0x Asset Proxies will be migrated to v3. So no additional approvals are required. 
+
+* You will begin to receive rebates from takers that fill your orders, see [Staking And Rebates](#staking-and-rebates) for more information. The 0x team will be reaching out to known Market Makers to assist in setup.
+
+## Taker/CFL
+
+* The ecosystem is moving to using 0x Mesh to share and discover liquidity. 0x Mesh is a decentralized network where all participants share orders equally with each other, see [Mesh And Networked Liquidity](#mesh-and-networked-liquidity). We recommend projects deploy their own Mesh nodes to contribute to the network. For light clients we have made gateway to Mesh [available as an endpoint](http://sra.0x.org/v3/orders) which follows the [SRA specification.](https://github.com/0xProject/standard-relayer-api)
+* Upgrade to the latest 0x packages using the `protocolV3` tag. For example,  `yarn upgrade @0x/order-utils@protocolV3`
+* For Takers that Fill orders via a Contract
+    * Takers now pay a [Protocol Fee](#protocol-fee) which is ultimately rebated to Market Makers. The entrypoint function used may need to become payable in order to forward the fee from `msg.sender`. This fee can also be paid in WETH with an additional allowance.
+    * The 0x [Order Format](#order-format) has changed with new additional fields. Ensure your contracts are updated to the new Order struct.
+    * As part of the 0x governance upgrade, the ERC20 approvals set on the 0x Asset Proxies will be migrated to v3. So no additional approvals are required. 
+* For Takers that Fill orders via an Externally Owned Account
+    * Takers now pay a [Protocol Fee](#protocol-fee) which is ultimately rebated to Market Makers. This fee is paid by attaching ETH to the transaction.
+    * As part of the 0x governance upgrade, the ERC20 approvals set on the 0x Asset Proxies will be migrated to v3. So no additional approvals are required. 
+* As part of the 0x governance upgrade, the ERC20 approvals set on the 0x Asset Proxies will be migrated to v3. So no additional approvals are required
+* The Exchange contract is new and has a different Exchange address
+
+## Relayer
+
+* The ecosystem is moving to using 0x Mesh to share and discover liquidity. 0x Mesh is a decentralized network where all participants share orders equally with each other, see [Mesh And Networked Liquidity](#mesh-and-networked-liquidity). We recommend projects deploy their own Mesh nodes to contribute to the network. 
+* Upgrade to the latest 0x packages using the `protocolV3` tag. For example,  `yarn upgrade @0x/order-utils@protocolV3`
+* Follow along the [Important Dates](https://github.com/0xProject/ZEIPs/issues/56) section to know the exact dates milestones are occurring
+* Inform your users of the upcoming v2 to v3 upgrade
+* Allow your users to cancel v2 orders and create new orders for v3. The exchange address will be known ahead of time, so orders can be created prior to the protocol being upgraded.
+* [Protocol Fee](#protocol-fee)s will be paid by takers of 0x liquidity, educate your users on this process. It is roughly equivalent to the gas fee already being paid to the miner. Your users will see an increase in the transaction cost in ETH.
+* Become acquainted with the calculation of the protocol fee, `150,000 * ordersFilled * gasPrice`. If your users **lower** their gas price in the wallet the protocol will return the excess fees. If your users **increase **the gas price it is possible the provided ETH value in the transaction is not enough to cover the Protocol Fee.
+
 # Concepts
 
 ### Mesh and networked liquidity
@@ -24,13 +60,13 @@ The 0x team will provide a queryable Gateway over HTTP to Mesh to ease implement
 
 Docker image for Mesh using V3 can be found [here](https://hub.docker.com/layers/0xorg/mesh/0xV3/images/sha256-8515b9a5a8b8f4c1e38048ea5cd81e03a3a2a8ae4129c5852433651fc4029c80).
 
-```
+```bash
 docker pull 0xorg/mesh:0xv3
 ```
 
 ### Order Format
 
-With the change to support arbitrary fee tokens (see [Arbitrary Fee Token](https://0xproject.quip.com/aCwDAvsHFngV#BLeACAFNLn7)) there are two additional fields in the Order structure. They are the maker fee asset and the taker fee asset, encoded as Asset Data.
+With the change to support arbitrary fee tokens (see [Arbitrary Fee Token](#arbitrary-fee-token)) there are two additional fields in the Order structure. They are the maker fee asset and the taker fee asset, encoded as Asset Data.
 
 ```solidity
 Order(
@@ -69,7 +105,7 @@ In essence the Maker is a contract with arbitrary logic that is executed. 0x Pro
 // This contract must transfer the tokens to the to address. 0x Protocol 
 // will verify the to address has a balance increase or it will revert.
 contract CustomERC20Bridge {
-    function withdrawTo(
+    function bridgeTransferFrom(
         address toTokenAddress,
         address /* from */,
         address to,
@@ -84,11 +120,11 @@ contract CustomERC20Bridge {
 
 For more information on Accessing On-chain Liquidity refer to [ZEIP-47](https://github.com/0xProject/ZEIPs/issues/47).
 
-Example On-chain bridges:  
-* [Eth2Dai](https://github.com/0xProject/0x-monorepo/pull/2221/files#diff-c0caf70ac828a1b07a4f14faab441381R29)  
-* [Uniswap](https://github.com/0xProject/0x-monorepo/pull/2233/files#diff-c216e27ef3bc70f4b7da08ebaadfa8ecR32)  
+Example On-chain bridges:
+[Eth2Dai](https://github.com/0xProject/0x-monorepo/pull/2221/files#diff-c0caf70ac828a1b07a4f14faab441381R29)
+[Uniswap](https://github.com/0xProject/0x-monorepo/pull/2233/files#diff-c216e27ef3bc70f4b7da08ebaadfa8ecR32)
 
-### Protocol fees
+### Protocol fee
 
 To foster a sustainable ecosystem, v3 has introduced Protocol Fees. These fees are paid by the Taker and ultimately result in a rebate for the Maker. The Protocol Fee scales with the Gas Price used by the transaction. In the wild we have seen high gas prices used by arbitrage bots when there is an opportunity for arbitrage. We see that these arbitrage bots compete with each other, resulting in high gas prices and in this competition the miner captures the most value. With Protocol Fees, a portion of funds used in this gas price auction can be redirected from the Miner to the Maker. Over time Makers receive the rebate from the Protocol Fees and are able to lower their operational costs, thus resulting in better prices. This is our next step in creating a sustainable ecosystem which rewards the users of the protocol. 
 
@@ -107,20 +143,20 @@ contract MyContract {
 }
 ```
 
-For more information on the Protocol Fee refer to the [documentation](https://github.com/0xProject/0x-protocol-specification/blob/3.0/v3/protocol-fees.pdf) and the [specification](https://github.com/0xProject/0x-protocol-specification/blob/3.0/v3/v3-specification.md#protocol-fees). See [Staking And Rebates](https://0xproject.quip.com/aCwDAvsHFngV#BLeACAP3exH) for additional background information on the reasoning behind the Protocol Fee.
+For more information on the Protocol Fee refer to the [documentation](https://github.com/0xProject/0x-protocol-specification/blob/3.0/v3/protocol-fees.pdf) and the [specification](https://github.com/0xProject/0x-protocol-specification/blob/3.0/v3/v3-specification.md#protocol-fees). See [Staking And Rebates](#staking-and-rebates) for additional background information on the reasoning behind the Protocol Fee.
 
 The Protocol Fee can be paid in ETH on all of the fill functions, the ETH is sent in as the value to the transaction:
 
 ```typescript
-    txHash = await contractWrappers.exchange.fillOrder.sendTransactionAsync(
-        signedOrder,
-        takerAssetAmount,
-        signedOrder.signature,
-        {
-            from: taker,
-            value: Web3Wrapper.toBaseUnitAmount(0.0006, 18),
-        },
-    );
+txHash = await contractWrappers.exchange.fillOrder.sendTransactionAsync(
+    signedOrder,
+    takerAssetAmount,
+    signedOrder.signature,
+    {
+        from: taker,
+        value: Web3Wrapper.toBaseUnitAmount(0.0006, 18),
+    },
+);
 ```
 
 The Protocol Fee can be also be paid in WETH, as such an ERC20 approval is required. The protocol forwent using the ERC20Proxy to collect fees. To pay the Protocol Fee using WETH the taker must approve the Protocol Fee Collector contract.
@@ -142,7 +178,7 @@ In previous versions of the protocol the Fee Recipient (often the Relayer) recei
 
 Matching Relayers were the most successful in building towards a sustainable business by taking a fee through spread. This model allows a Matching Relayer to only Match orders (against their own) when there was appropriate spread to at least cover the operational cost. The latest fee changes will reduce the complexity of a Matching Relayer and calculating the profitability of executing a trade and the fees received. 
 
-The 0x protocol in v3 now allows for the fee to be paid in any arbitrary token. Fees can be paid to the Fee Recipient in the tokens being traded or in any other arbitrary token. Fees can even be paid in collectibles. See the updated [Order Format](https://0xproject.quip.com/aCwDAvsHFngV#BLeACAHEnTc) for the parameters on arbitrary fee tokens.
+The 0x protocol in v3 now allows for the fee to be paid in any arbitrary token. Fees can be paid to the Fee Recipient in the tokens being traded or in any other arbitrary token. Fees can even be paid in collectibles. See the updated [Order Format](#order-format) for the parameters on arbitrary fee tokens.
 
 ### Affiliate fees (Forwarder)
 
@@ -168,7 +204,7 @@ bytes4(keccak256("OrderStatus(bytes32,uint8)")),
 
 // Invalid Balance of Allowance during settlement
 bytes4(keccak256("AssetProxyTransferError(bytes32,bytes,bytes)")),
-     orderHash,
+    orderHash,
     assetData,
     errorData,
 );
@@ -195,7 +231,7 @@ Our primary on-chain core module is called DevUtils and [more information can be
 
 ### Market Buy and Sell Operations
 
-The 0x Protocol supports Market Sell and Market Buy Operations. Given a set of orders, the protocol will iterate through each Order until the requested amount has been settled, or all orders have been exhausted. There were two variants of this functionality, for Market Buy  there was marketBuyOrders and marketBuyOrdersNoThrow. marketBuyOrders behaved in undesirable way when it encountered an order which had been cancelled or expired. When an unfillable order was encountered it would revert rather than move to the continue to the next order. Most implementations moved to using `markeyBuyOrdersNoThrow` to avoid this behavior. 
+The 0x Protocol supports Market Sell and Market Buy Operations. Given a set of orders, the protocol will iterate through each Order until the requested amount has been settled, or all orders have been exhausted. There were two variants of this functionality, for Market Buy there was marketBuyOrders and marketBuyOrdersNoThrow. marketBuyOrders behaved in undesirable way when it encountered an order which had been cancelled or expired. When an unfillable order was encountered it would revert rather than move to the continue to the next order. Most implementations moved to using `markeyBuyOrdersNoThrow` to avoid this behavior. 
 
 A new operation, `marketBuyOrdersFillOrKill` has been introduced in v3. This function only reverts if the target amount of tokens are unable to be bought or sold, if an unfillable order is encountered it is skipped. This function is useful as it ensures the user get’s the requested amount of tokens when buying. If 500 DAI is required to close a CDP, this function will ensure the user receives at least 500 DAI. 
 
@@ -203,11 +239,11 @@ A new operation, `marketBuyOrdersFillOrKill` has been introduced in v3. This fun
 
 Makers often need to cancel orders. We’ve seen a number of Makers use `cancelOrdersUpTo` which can cancel an arbitrary number of orders by invalidating a salt value. Any orders with a salt value less than this are considered invalid.
 
-Those who use `cancelOrder` or `batchCancelOrders` may have experienced frustration as this function was not idempotent. If a previously cancelled order was included in a `batchCancelOrders`, then the operation would revert. In v3 this behavior has changed and the operation is idempotent. A Maker is now able to include previously cancelled and expired orders in the `cancelOrder` and `batchCancelOrders` operations.
+Those who use cancelOrder or batchCancelOrders may have experienced frustration as this function was not idempotent. If a previously cancelled order was included in a batchCancelOrders, then the operation would revert. In v3 this behavior has changed and the operation is idempotent. A Maker is now able to include previously cancelled and expired orders in the `cancelOrder` and `batchCancelOrders` operations.
 
 ### Standard Relayer API
 
-0x Released a specification for a Standard Relayer API (SRA). The primary purpose of this was to enable Relayers to share orders with other Relayers, and allow other participants in the ecosystem to discover orders programatically. With the release of 0x Mesh ([Mesh And Networked Liquidity](https://0xproject.quip.com/aCwDAvsHFngV#BLeACAwckJu)), this has replaced the need for Relayers to share orders with other Relayers as now all orders can be shared in a decentralized peer-to-peer network. In the interim we have updated the SRA to support v3 with the new [Order Format](https://0xproject.quip.com/aCwDAvsHFngV#BLeACAHEnTc). User facing tools such as AssetSwapper and 0x Instant will still rely on the SRA to discover orders. 
+0x Released a specification for a Standard Relayer API (SRA). The primary purpose of this was to enable Relayers to share orders with other Relayers, and allow other participants in the ecosystem to discover orders programatically. With the release of 0x Mesh ([Mesh And Networked Liquidity](#mesh-and-networked-liquidity)), this has replaced the need for Relayers to share orders with other Relayers as now all orders can be shared in a decentralized peer-to-peer network. In the interim we have updated the SRA to support v3 with the new [Order Format](#order-format). User facing tools such as AssetSwapper and 0x Instant will still rely on the SRA to discover orders. 
 
 The final spec for SRA v3 is [complete](https://github.com/0xProject/standard-relayer-api#sra-v3). 
 
@@ -216,43 +252,21 @@ The final spec for SRA v3 is [complete](https://github.com/0xProject/standard-re
 Each test network will have new contracts deployed. Please refer to the network by ID in the [this file](https://github.com/0xProject/0x-monorepo/blob/3.0/packages/contract-addresses/src/index.ts#L84) to find the contract address you need. The `@0x/contract-addresses` package can also be imported to access the addresses programatically.
 
 ```
+Mainnet
+Exchange: TBD
+Forwarder: TBD
+
 Kovan
 Exchange: 0x617602cd3f734cf1e028c96b3f54c0489bed8022
 Forwarder: 0x4c4edb103a6570fa4b58a309d7ff527b7d9f7cf2
 
 Ropsten
 Exchange: 0x725bc2f8c85ed0289d3da79cde3125d33fc1d7e6
-Forwarder: 0x31c3890769ed3bb30b2781fd238a5bb7ecfeb7c8
+Forwarder: 0x31c3890769ed3bb30b2781fd238a5bb7ecfeb7c8 
 
 Rinkeby
 Exchange: 0x8e1dfaf747b804d041adaed79d68dcef85b8de85
 Forwarder: 0xc6db36aeb96a2eb52079c342c3a980c83dea8e3c
 ```
 
-# Important information by use case
 
-## Market Maker
-
-[Mesh And Networked Liquidity](https://0xproject.quip.com/aCwDAvsHFngV#BLeACAwckJu)  
-[Staking And Rebates](https://0xproject.quip.com/aCwDAvsHFngV#BLeACAP3exH)  
-[Order Cancellations](https://0xproject.quip.com/aCwDAvsHFngV#BLeACAzOpED)  
-[Rich Revert Reasons And Debugging](https://0xproject.quip.com/aCwDAvsHFngV#BLeACA2GEhk)  
-[Support For More Languages](https://0xproject.quip.com/aCwDAvsHFngV#BLeACAibb4H)  
-
-## Taker/CFL
-
-[Mesh And Networked Liquidity](https://0xproject.quip.com/aCwDAvsHFngV#BLeACAwckJu)  
-[Protocol Fees](https://0xproject.quip.com/aCwDAvsHFngV#BLeACAqlgvz)  
-[Accessing On-chain Liquidity](https://0xproject.quip.com/aCwDAvsHFngV#BLeACA4Ssjl)  
-[Rich Revert Reasons And Debugging](https://0xproject.quip.com/aCwDAvsHFngV#BLeACA2GEhk)  
-[Support For More Languages](https://0xproject.quip.com/aCwDAvsHFngV#BLeACAibb4H)
-[Market Buy And Sell Operations](https://0xproject.quip.com/aCwDAvsHFngV#BLeACApoA4d)
-
-## Relayer
-
-[Mesh And Networked Liquidity](https://0xproject.quip.com/aCwDAvsHFngV#BLeACAwckJu)  
-[Arbitrary Fee Token](https://0xproject.quip.com/aCwDAvsHFngV#BLeACAFNLn7)  
-[Affiliate Fees (Forwarder)](https://0xproject.quip.com/aCwDAvsHFngV#BLeACAe9X4Y)  
-[Accessing On-chain Liquidity](https://0xproject.quip.com/aCwDAvsHFngV#BLeACA4Ssjl)  
-[Support For More Languages](https://0xproject.quip.com/aCwDAvsHFngV#BLeACAibb4H)  
-[Market Buy And Sell Operations](https://0xproject.quip.com/aCwDAvsHFngV#BLeACApoA4d)  
