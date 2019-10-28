@@ -1,12 +1,12 @@
 # 0x protocol Staking specification
 
 ## Table of Contents
-[1 Overview](#1-overview)
+<br>[1 Overview](#1-overview)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;[1.1 Motivation](#11-motivation)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;[1.2 Utility of Stake](#12-utility-of-stake)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;[1.3 Staking Pools](#13-staking-pools)
 <br>[2 Architecture](#2-architecture)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[2.1 Read-Only Mode](#21-read-only-mode)
+<br>&nbsp;&nbsp;&nbsp;&nbsp;[2.1 Normal Mode](#21-normal-mode)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;[2.2 Catastrophic Failure Mode](#22-catastrophic-failure-mode)
 <br>[3 Contract Migrations](#3-contract-migrations)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;[3.1 Deploying the system](#31-deploying-the-system)
@@ -16,11 +16,10 @@
 <br>&nbsp;&nbsp;&nbsp;&nbsp;[3.5 Handling upgrades to the ERC20 Proxy or ERC20 Asset Data](#35-handling-upgrades-to-the-erc20-proxy-or-erc20-asset-data)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;[3.6 Setting Parameters](#36-setting-parameters)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;[3.7 Managing Exchange Addresses](#37-managing-exchange-addresses)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[3.8 Forcing Catastrophic Failure after Prolonged Read-Only Mode](#38-forcing-catastrophic-failure-after-prolonged-read-only-mode)
 <br>[4 Epochs & Scheduling](#4-epochs--scheduling)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;[4.1 Ending One Epoch, and Starting a New One](#41-ending-one-epoch-and-starting-a-new-one)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[4.1 Logic of `endEpoch`](#41-logic-of-endepoch)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[4.1 Errors by `endEpoch`](#41-errors-by-endepoch)
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[4.1.1 Logic of `endEpoch`](#411-logic-of-endepoch)
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[4.1.2 Errors by `endEpoch`](#412-errors-by-endepoch)
 <br>[5 Staking](#5-staking)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[5.0.1 Logic of `stake`](#501-logic-of-stake)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[5.0.2 Errors by `stake`](#502-errors-by-stake)
@@ -54,24 +53,18 @@
 <br>&nbsp;&nbsp;&nbsp;&nbsp;[9.1 Staking Logic Contract](#91-staking-logic-contract)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;[9.2 Staking Contract State](#92-staking-contract-state)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;[9.3 Staking Proxy Contract](#93-staking-proxy-contract)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[9.4 Read-Only Proxy Contract](#94-read-only-proxy-contract)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[9.5 ZRX Vault](#95-zrx-vault)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[9.6 ZRX Vault Backstop](#96-zrx-vault-backstop)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[9.7 Structs](#97-structs)
+<br>&nbsp;&nbsp;&nbsp;&nbsp;[9.4 ZRX Vault](#94-zrx-vault)
+<br>&nbsp;&nbsp;&nbsp;&nbsp;[9.5 Structs](#95-structs)
 <br>[10 Events](#10-events)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;[10.1 Staking Logic Contract](#101-staking-logic-contract)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;[10.2 Staking Proxy Contract](#102-staking-proxy-contract)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[10.3 Read-Only Proxy Contract](#103-read-only-proxy-contract)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[10.4 ZRX Vault](#104-zrx-vault)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[10.5 ZRX Vault Backstop](#105-zrx-vault-backstop)
+<br>&nbsp;&nbsp;&nbsp;&nbsp;[10.3 ZRX Vault](#103-zrx-vault)
 <br>[11 Algorithms, Data Structures & Design Patterns](#11-algorithms-data-structures--design-patterns)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;[11.1 Securing the Proxy Pattern](#111-securing-the-proxy-pattern)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[11.2 The Read-Only Proxy](#112-the-read-only-proxy)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[11.3 Tracking for Reward Balances for Pool Members](#113-tracking-for-reward-balances-for-pool-members)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[11.3.1 Computing Rewards in Practice](#1131-computing-rewards-in-practice)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[11.3.2 Handling Epochs With No Rewards](#1132-handling-epochs-with-no-rewards)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[11.4 Stake Management](#114-stake-management)
-
+<br>&nbsp;&nbsp;&nbsp;&nbsp;[11.2 Tracking for Reward Balances for Pool Members](#112-tracking-for-reward-balances-for-pool-members)
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[11.2.1 Computing Rewards in Practice](#1121-computing-rewards-in-practice)
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[11.2.2 Handling Epochs With No Rewards](#1122-handling-epochs-with-no-rewards)
+<br>&nbsp;&nbsp;&nbsp;&nbsp;[11.3 Stake Management](#113-stake-management)
 
 ## 1 Overview
 
@@ -97,42 +90,29 @@ Staking pools can also be used to increase voting power. Delegators share a port
 
 ## 2 Architecture
 
-The smart contract architecture is derived from the proxy pattern, which allows state to be retained across upgrades to the logic.
-
-This system is composed of five contracts:
+The system of staking contracts is composed of three contracts.
 
 |Contract|Description |
 |--|--|
-| Staking Contract | An upgradeable/stateless contract that implements staking logic |
+|Staking Contract| An upgradeable/stateless contract that implements staking logic|
 |Staking Proxy|Stores staking state and delegates to the Staking Contract|
-|Read-Only Proxy|Forces read-only calls to the Staking Contract|
 |ZRX Vault|Securely holds staked ZRX Tokens|
-|ZRX Vault Backstop|Failsafe allowing users to withdraw their ZRX directly from the ZRX Vault|
 
-The diagram below shows how these contracts connect to each other and the broader 0x ecosystem.
+### 2.1 Normal Mode
+
+The diagram below shows how the staking contracts connect to each other and the broader 0x ecosystem.
 
 <p align="center"><img src="./assets/Staking%20Architecture%20-%20Basic.png" width="700" /></p>
 
-
-### 2.1 Read-Only Mode
-
-If a vulnerability is discovered in the staking contract, operations may be halted to conduct forensics:
-
-1.  The 0x Exchange contract stops charging protocol fees.
-2.  The staking contract is set to read-only mode.
-
-<p align="center"><img src="./assets/Staking%20Architecture%20-%20Read-Only.png" width="750" /></p>
-
 ### 2.2 Catastrophic Failure Mode
 
-In this worst-case scenario, state has been irreparably corrupted and the staking contracts must be redeployed. Users would re-stake under the new system, at will.
+In this worst-case scenario, state has been irreparably corrupted and the staking contracts must be redeployed. Users would withdraw their ZRX and re-stake under the new system.
 
-1. The ZRX vault is detached from the staking contract.
-2. Users withdraw their funds from the ZRX vault directly.
+1. The 0x Exchange contract stops charging protocol fees.
+2. The ZRX vault is detached from the staking contract.
+3. Users withdraw their funds from the ZRX vault directly.
 
 <p align="center"><img src="./assets/Staking%20Architecture%20-%20Catastrophic%20Failure.png" width="750" /></p>
-
-Note: Anyone can enable Catastrophic Failure Mode by calling the ZRX Vault Backstop after the system has been in Read-Only Mode for 40 days.
 
 ## 3 Contract Migrations
 
@@ -143,9 +123,7 @@ This section outlines steps for managing the system of smart contracts. Operatio
 1. Deploy ZRX Vault.
 2. Deploy Staking Contract (address of ZRX Vault is hardcoded in this contract).
 3. Deploy Staking Proxy.
-4. Deploy Read-Only Proxy.
-5. Attach Staking Contract to Staking Proxy.
-6. Deploy ZRX Vault Backstop.
+4. Attach Staking Contract to Staking Proxy.
 
 ### 3.2 Upgrading Staking Proxy
 
@@ -231,17 +209,6 @@ function validExchanges(address addr)
     returns (bool isValid);
 ```
 
-### 3.8 Forcing Catastrophic Failure after Prolonged Read-Only Mode
-
-After the system has been in Read-Only mode for 40 days, anyone can force the ZRX Vault into Catastrophic Failure Mode by calling into the ZRX Vault Backstop contract.
-
-```solidity
-/// @dev Triggers catastophic failure mode in the zrxzVault iff read-only mode
-///      has been continuously set for at least 40 days.
-function enterCatastrophicFailureIfProlongedReadOnlyMode()
-    external;
-```
-
 ## 4 Epochs & Scheduling
 
 All processes in the system are segmented into contiguous time intervals, called epochs. Epochs have a fixed minimum period (10 days at time of writing), which is configurable via [MixinParams](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/sys/MixinParams.sol). Epochs serve as the basis for all other timeframes within the system, which provides a more stable and consistent scheduling metric than blocks or block timestamps.
@@ -264,7 +231,7 @@ function endEpoch()
 
 The return value describes the number of pools to finalize; this concept is described in [Section 6.2](#62-paying-liquidity-rewards-finalization).
 
-#### 4.1 Logic of `endEpoch`
+#### 4.1.1 Logic of `endEpoch`
 
 When this function is called:
 1. Assert the previous epoch (`currentEpoch-1`) is finalized: all rewards have been paid to pools.
@@ -275,7 +242,7 @@ When this function is called:
 6. Increase the `currentEpoch` by 1.
 7. If no pools earned rewards this epoch then the epoch is implicitly finalized; emit the [EpochFinalized](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IStakingEvents.sol#L72) Event.
 
-#### 4.1 Errors by `endEpoch`
+#### 4.1.2 Errors by `endEpoch`
 
 |Error|Condition|
 |--|--|
@@ -703,8 +670,6 @@ function batchExecute(bytes[] calldata data)
 2. Execute each call to the Staking Contract, constructing an array of return data.
 3. Revert if a single call fails.
 
-Note that if the system is in Read-Only mode then batch transactions will route through the Read-Only proxy.
-
 #### 7.0.2 Errors by `batchExecute`
 
 |Error|Condition|
@@ -999,16 +964,6 @@ function stakingContract()
     view
     returns (address);
 
-function readOnlyProxy()
-    external
-    view
-    returns (address);
-
-function readOnlyProxyCallee()
-    external
-    view
-    returns (address);
-
 function lastPoolId()
     external
     view
@@ -1081,12 +1036,6 @@ function attachStakingContract(address _stakingContract)
 function detachStakingContract()
     external;
 
-/// @dev Gets state of stakingProxy read-only mode.
-function readOnlyState()
-    external
-    view
-    returns (IStructs.ReadOnlyState memory);
-
 /// @dev Asserts that an epoch is between 5 and 30 days long.
 //       Asserts that 0 < cobb douglas alpha value <= 1.
 //       Asserts that a stake weight is <= 100%.
@@ -1097,11 +1046,7 @@ function assertValidStorageParams()
     view;
 ```
 
-### 9.4 Read-Only Proxy Contract
-
-The Read-Only proxy implements only the fallback function.
-
-### 9.5 ZRX Vault
+### 9.4 ZRX Vault
 
 This interface is defined in [IZrxVault](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IZrxVault.sol).
 
@@ -1162,30 +1107,11 @@ function balanceOfZrxVault()
     returns (uint256);
 ```
 
-### 9.6 ZRX Vault Backstop
-
-This interface is defined in [IZrxVaultBackstop](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IZrxVaultBackstop.sol).
-
-```solidity
-/// @dev Triggers catastophic failure mode in the zrxzVault iff read-only mode
-///      has been continuously set for at least 40 days.
-function enterCatastrophicFailureIfProlongedReadOnlyMode()
-    external;
-```
-
-### 9.7 Structs
+### 9.5 Structs
 
 This interface is defined in [IStructs](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IStructs.sol).
 
 ```solidity
-/// @dev State of stakingProxy read-only mode.
-/// @param isReadOnlyModeSet True if in read-only mode.
-/// @param lastSetTimestamp Timestamp at which read-only mode was last set.
-struct ReadOnlyState {
-    bool isReadOnlyModeSet;
-    uint96 lastSetTimestamp;
-}
-
 /// @dev Stats for a pool that earned rewards.
 /// @param feesCollected Fees collected in ETH by this pool.
 /// @param weightedStake Amount of weighted stake in the pool.
@@ -1404,19 +1330,9 @@ event StakingContractAttachedToProxy(
 
 /// @dev Emitted by StakingProxy when a staking contract is detached.
 event StakingContractDetachedFromProxy();
-
-/// @dev Emitted by StakingProxy when read-only mode is set.
-event ReadOnlyModeSet(
-    bool readOnlyMode,
-    uint96 timestamp
-);
 ```
 
-### 10.3 Read-Only Proxy Contract
-
-The read-only proxy does not emit any events.
-
-### 10.4 ZRX Vault
+### 10.3 ZRX Vault
 
 These events are defined in [IZrxVault](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IZrxVault.sol).
 
@@ -1448,10 +1364,6 @@ event Withdraw(
 event ZrxProxySet(address zrxProxyAddress);
 ```
 
-### 10.5 ZRX Vault Backstop
-
-The ZRX Vault Backstop does not emit any events.
-
 ## 11 Algorithms, Data Structures & Design Patterns
 
 This section dives deeper into the mechanics of the smart contracts.
@@ -1468,20 +1380,7 @@ The best way we found to mitigate this danger is with runtime sanity checks. We 
 
 See [LibProxy](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/libs/LibProxy.sol) for the proxy code.
 
-### 11.2 The Read-Only Proxy
-
-The [read-only proxy](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/ReadOnlyProxy.sol) is stateless and sits between the Staking Contract Proxy and Staking Contract. It forces every call to be read-only by using a force-revert delegate-call.
-
-Steps:
-1. The read-only proxy delegates the incoming call to itself.
-2. On re-entry, we delegate to the Staking Contract and then _reverts_ with the return data.
-3. The revert is caught and returned to the Staking Proxy.
-
-<p align="center"><img src="./assets/Read-Only%20Proxy.png" width="600" /></p>
-
-See [LibProxy](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/libs/LibProxy.sol) for the proxy code.
-
-### 11.3 Tracking for Reward Balances for Pool Members
+### 11.2 Tracking for Reward Balances for Pool Members
 
 
 This section describes the workflow for tracking and computing the portion of a pool's reward that belongs to a given member. The general equations for this are shown below.
@@ -1526,7 +1425,7 @@ mapping (bytes32  => StoredBalance) internal _delegatedStakeByPoolId;
 mapping (bytes32  =>  mapping (uint256  => Fraction)) internal _cumulativeRewardsByPool;
 ```
 
-#### 11.3.1 Computing Rewards in Practice
+#### 11.2.1 Computing Rewards in Practice
 
 In the equations above, a staker earned rewards from epochs `[0..n]`. This means that the staker modified between epochs `n` and stopped earning rewards in epoch `n+1`. So at the time of the call, we don't have access to the reward for epoch `n`.
 
@@ -1539,7 +1438,7 @@ The final equation for computing a member's reward during epoch `n` becomes:
 <p align="center"><img src="./assets/reward_tracking/Reward-Final.png" height="60" /></p>
 
 
-#### 11.3.2 Handling Epochs With No Rewards
+#### 11.2.2 Handling Epochs With No Rewards
 
 To compute a member's reward using this algorithm, we need to know the cumulative rewards at the entry and exit epoch of the member. But, what happens if no reward was recorded during one of these epochs?
 
@@ -1552,7 +1451,7 @@ We keep track of the last epoch that the `cumulativeRewardsByPool` was updated i
 mapping (bytes32  =>  uint256) internal cumulativeRewardsByPoolLastStored;
 ```
 
-### 11.4 Stake Management
+### 11.3 Stake Management
 
 Below are the design objectives of stake management:
 
