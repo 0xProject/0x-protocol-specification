@@ -218,7 +218,7 @@ A trade is initiated when an [order](#orders) is passed into the [`Exchange`](#e
 ### ERC20 <> ERC20
 
 <div style="text-align: center;">
-<img src="./img/0x_v2_trade_erc20_erc20.png" style="padding-bottom: 20px; padding-top: 20px;" width="80%" />
+<img src="../img/0x_v2_trade_erc20_erc20.png" style="padding-bottom: 20px; padding-top: 20px;" width="80%" />
 </div>
 
 Transaction #1
@@ -237,7 +237,7 @@ Transaction #1
 ### ERC20 <> ERC721
 
 <div style="text-align: center;">
-<img src="./img/0x_v2_trade_erc20_erc721.png" style="padding-bottom: 20px; padding-top: 20px;" width="80%" />
+<img src="../img/0x_v2_trade_erc20_erc721.png" style="padding-bottom: 20px; padding-top: 20px;" width="80%" />
 </div>
 
 Transaction #1

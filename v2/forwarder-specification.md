@@ -11,7 +11,7 @@
 # Architecture
 
 <div style="text-align: center;">
-<img src="./img/0x_v2_forwarder.png" style="padding-bottom: 20px; padding-top: 20px;" width="80%" />
+<img src="../img/0x_forwarder.png" style="padding-bottom: 20px; padding-top: 20px;" width="80%" />
 </div>
 
 The Forwarding contract acts as a middleman between the user and the 0x Exchange contract. Its purpose is to perform a number of useful actions on the users behalf. Conveniently reducing the number of steps and transactions.
