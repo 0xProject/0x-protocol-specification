@@ -1460,13 +1460,15 @@ Below are the design objectives of stake management:
 2. Delegating, un-delegating and re-delegating stake comes into effect next epoch.
 3. Users can freely adjust the distribution of their stake for the next epoch.
 
-There are two statuses that stake can exist in: Undelegated or Delegated. Each state has three fields:
+There are two statuses that stake can exist in: Undelegated or Delegated. Each has three fields:
 
 1. How much stake is currently in this state (`currentEpochBalance` in the code; `cur` in the diagram below)
 2. How much stake is in this state next epoch (`nextEpochBalance` in the code; `next` in the diagram below)
 3. The last time this state was stored (`currentEpoch` in the code)
 
 These fields combined allow us to compute the correct values at any given epoch without user intervention.
+
+The amount that can be unstaked is equal to `min(undelegated.cur, undelegated.next)`.
 
 The figure below illustrates how these fields are updated to track a user's stake.
 
