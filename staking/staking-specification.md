@@ -40,9 +40,10 @@
 <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[6.1.6 Errors by `joinStakingPoolAsMaker`](#616-errors-by-joinstakingpoolasmaker)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;[6.2 Paying Liquidity Rewards (Finalization)](#62-paying-liquidity-rewards-finalization)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[6.2.1 Logic of `finalizePool`](#621-logic-of-finalizepool)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[6.2.2 Errors by `finalizePool`](#622-errors-by-finalizepool)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[6.2.3 Logic of `withdrawDelegatorRewards`](#623-logic-of-withdrawdelegatorrewards)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[6.2.4 Errors by `withdrawDelegatorRewards`](#624-errors-by-withdrawdelegatorrewards)
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[6.2.2 Precision of Rewards Computation](#622-precision-of-rewards-computation)
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[6.2.3 Errors by `finalizePool`](#623-errors-by-finalizepool)
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[6.2.4 Logic of `withdrawDelegatorRewards`](#624-logic-of-withdrawdelegatorrewards)
+<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[6.2.5 Errors by `withdrawDelegatorRewards`](#625-errors-by-withdrawdelegatorrewards)
 <br>[7 Batch Calls](#7-batch-calls)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[7.0.1 Logic of `batchExecute`](#701-logic-of-batchexecute)
 <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[7.0.2 Errors by `batchExecute`](#702-errors-by-batchexecute)
@@ -624,7 +625,13 @@ Finalizing pays any unsettled liquidity rewards from the previous epoch to the p
 11. Update aggregated stats in state to reflect that this pool's rewards have been settled.
 12. If all pool's are settled then the previous epoch is finalized. Emit the [EpochFinalized](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IStakingEvents.sol#L72) Event.
 
-#### 6.2.2 Errors by `finalizePool`
+#### 6.2.2 Precision of Rewards Computation
+
+The [solidity](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/libs/LibCobbDouglas.sol) implementation of the Cobb-Douglas function ultimately relies on [Taylor series approximations](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/libs/LibFixedMath.sol) using fixed-point, signed-integer math. These approximations have an expected minimum precision of `12` digits.
+
+This can result in very small errors in reward computation, in either direction. In order to guard against the sum of total rewards exceeding the total rewards available, the computed reward for a pool is always [clipped](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/sys/MixinFinalizer.sol#L247) to the total (unfinalized) rewards remaining.
+
+#### 6.2.3 Errors by `finalizePool`
 
 The errors in finalize pool are all math errors related to reward computation. If any of these are triggered then it indicates= an internal logic error.
 
@@ -635,14 +642,14 @@ The errors in finalize pool are all math errors related to reward computation. I
 |[BinOpError](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/libs/LibFixedMathRichErrors.sol#L81)|An overflow or underflow error when performing unsigned arithmetic.|
 
 
-#### 6.2.3 Logic of `withdrawDelegatorRewards`
+#### 6.2.4 Logic of `withdrawDelegatorRewards`
 
 1. Assert the pool's rewards have been settled in the current epoch via `finalizePool`.
 2. Compute the portion of the pool's reward owed to the delegator.
 3. If the amount owed is non-zero then transfer it in WETH to the delegator.
 4. Update reward tracking metrics to reflect that a delegator interacted with the pool. See [Section 10.3](#103-tracking-for-reward-balances-for-pool-members) for more information on reward tracking.
 
-#### 6.2.4 Errors by `withdrawDelegatorRewards`
+#### 6.2.5 Errors by `withdrawDelegatorRewards`
 
 |Error|Condition|
 |--|--|
