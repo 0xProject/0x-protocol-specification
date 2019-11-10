@@ -183,22 +183,22 @@ The protocol fee can be paid in either ETH or its [WETH](https://weth.io/) equiv
 
 An order message consists of the following parameters:
 
-| Parameter                       | Type    | Description                                                                                                                                  |
-| ------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| makerAddress                    | address | Address that created the order.                                                                                                              |
-| takerAddress                    | address | Address that is allowed to fill the order. If set to 0, any address is allowed to fill the order.                                            |
-| feeRecipientAddress             | address | Address that will receive fees when order is filled.                                                                                         |
-| [senderAddress](#senderaddress) | address | Address that is allowed to call Exchange contract methods that affect this order. If set to 0, any address is allowed to call these methods. |
-| makerAssetAmount                | uint256 | Amount of makerAsset being offered by maker. Must be greater than 0.                                                                         |
-| takerAssetAmount                | uint256 | Amount of takerAsset being bid on by maker. Must be greater than 0.                                                                          |
-| makerFee                        | uint256 | Amount of makerFeeAsset paid to feeRecipient by maker when order is filled. If set to 0, no fee payment to feeRecipient will be attempted.   |
-| takerFee                        | uint256 | Amount of takerFeeAsset paid to feeRecipient by taker when order is filled. If set to 0, no fee payment feeRecipient will be attempted.      |
-| expirationTimeSeconds           | uint256 | Timestamp in seconds at which order expires.                                                                                                 |
-| [salt](#salt)                   | uint256 | Arbitrary number to facilitate uniqueness of the order's hash.                                                                               |
-| [makerAssetData](#assetdata)    | bytes   | ABIv2 encoded data that can be decoded by a specified proxy contract when transferring makerAsset.                                           |
-| [takerAssetData](#assetdata)    | bytes   | ABIv2 encoded data that can be decoded by a specified proxy contract when transferring takerAsset.                                           |
-| [makerFeeAssetData](#assetdata) | bytes   | ABIv2 encoded data that can be decoded by a specified proxy contract when transferring makerFeeAsset.                                        |
-| [takerFeeAssetData](#assetdata) | bytes   | ABIv2 encoded data that can be decoded by a specified proxy contract when transferring takerFeeAsset.                                        |
+| Parameter                           | Type    | Description                                                                                                                                  |
+| ----------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| makerAddress                        | address | Address that created the order.                                                                                                              |
+| takerAddress                        | address | Address that is allowed to fill the order. If set to 0, any address is allowed to fill the order.                                            |
+| feeRecipientAddress                 | address | Address that will receive fees when order is filled.                                                                                         |
+| [senderAddress](#senderaddress)     | address | Address that is allowed to call Exchange contract methods that affect this order. If set to 0, any address is allowed to call these methods. |
+| makerAssetAmount                    | uint256 | Amount of makerAsset being offered by maker. Must be greater than 0.                                                                         |
+| takerAssetAmount                    | uint256 | Amount of takerAsset being bid on by maker. Must be greater than 0.                                                                          |
+| makerFee                            | uint256 | Amount of makerFeeAsset paid to feeRecipient by maker when order is filled. If set to 0, no fee payment to feeRecipient will be attempted.   |
+| takerFee                            | uint256 | Amount of takerFeeAsset paid to feeRecipient by taker when order is filled. If set to 0, no fee payment feeRecipient will be attempted.      |
+| expirationTimeSeconds               | uint256 | Timestamp in seconds at which order expires.                                                                                                 |
+| [salt](#salt)                       | uint256 | Arbitrary number to facilitate uniqueness of the order's hash.                                                                               |
+| [makerAssetData](#assetdata)        | bytes   | ABIv2 encoded data that can be decoded by a specified proxy contract when transferring makerAsset.                                           |
+| [takerAssetData](#assetdata)        | bytes   | ABIv2 encoded data that can be decoded by a specified proxy contract when transferring takerAsset.                                           |
+| [makerFeeAssetData](#fee-assetdata) | bytes   | ABIv2 encoded data that can be decoded by a specified proxy contract when transferring makerFeeAsset.                                        |
+| [takerFeeAssetData](#fee-assetdata) | bytes   | ABIv2 encoded data that can be decoded by a specified proxy contract when transferring takerFeeAsset.                                        |
 
 ### senderAddress
 
@@ -214,6 +214,10 @@ An order's `salt` parameter has two main usecases:
 ### assetData
 
 The `makerAssetData` and `takerAssetData` fields of an order contain information specific to that asset. These fields are encoded using [ABIv2](http://solidity.readthedocs.io/en/latest/abi-spec.html) with a 4 byte id that references the proxy that is intended to decode the data. See the [`AssetProxy`](#assetproxy) specifications for the exact expected encoding of the `assetData` fields that correspond to each `AssetProxy` contract.
+
+### Fee assetData
+
+Fee `assetData` fields use the same encoding and functionality as the other `assetData` fields within an order. However, these fields will be ignored if the value of their corresponding fee is set to 0. In these cases, it is recommended that the fee `assetData` fields are set to `0x` or are equivalent to their corresponding non-fee `assetData` fields (the latter is slightly more efficient _if_ using an ABI encoder which deduplicates equal blocks of dynamic data).
 
 ## Hashing an order
 
