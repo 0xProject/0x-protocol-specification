@@ -4,7 +4,7 @@
 
 The `ERC20BridgeProxy` was first proposed in [ZEIP-47](https://github.com/0xProject/ZEIPs/issues/47). Please refer to the ZEIP for information and discussion about how this contract works at a higher level.
 
-## Transfering ERC-20 tokens via a Bride contract
+## Transfering ERC-20 tokens via an ERC20Bridge contract
 
 ### transferFrom
 
@@ -112,3 +112,40 @@ The contracts that are currently authorized to call the `ERC20BridgeProxy` contr
 
 - [Exchange 3.0](../v3/v3-specification.md#exchange)
 - [MultiAssetProxy](../asset-proxy/multi-asset-proxy.md)
+
+## Writing an ERC20Bridge contract
+
+`ERC20Bridge` contracts can be permissionlessly deployed and connected to the `ERC20BridgeProxy`. An bridge should have the following interface:
+
+```solidity
+contract IERC20Bridge {
+
+    // @dev Result of a successful bridge call.
+    bytes4 constant internal BRIDGE_SUCCESS = 0xdc1600f3;
+
+    /// @dev Transfers `amount` of the ERC20 `tokenAddress` from `from` to `to`.
+    /// @param tokenAddress The address of the ERC20 token to transfer.
+    /// @param from Address to transfer asset from.
+    /// @param to Address to transfer asset to.
+    /// @param amount Amount of asset to transfer.
+    /// @param bridgeData Arbitrary asset data needed by the bridge contract.
+    /// @return success The magic bytes `0x37708e9b` if successful.
+    function bridgeTransferFrom(
+        address tokenAddress,
+        address from,
+        address to,
+        uint256 amount,
+        bytes calldata bridgeData
+    )
+        external
+        returns (bytes4 success);
+}
+```
+
+### ERC20Bridge design patterns
+
+The `bridgeTransferFrom` function is required to transfer some amount of an ERC-20 token to the `to` address, but it is agnostic to where it acquires those tokens. An `ERC20Bridge` contract may already be holding the tokens or may be authorized to transfer the tokens on behalf of the `from` address.
+
+One common pattern can be used to bridge liquidity with on-chain decentralized exchanges. The bridge contract is set to the `makerAddress` of the 0x order and will purchase the required tokens just in time before transferring them to the `takerAddress` address. This takes advantage of the fact that the taker-to-maker transfer in an order occurs before the maker-to-taker transfer. After the taker's tokens are transferred to the bridge contract, it can sell those tokens in an on-chain trade and then transfer the newly purchased ERC-20 token to the taker.
+
+Example implementations of bridge contracts can be found [here](https://github.com/0xProject/0x-monorepo/tree/development/contracts/asset-proxy/contracts/src/bridges).
