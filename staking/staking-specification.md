@@ -1270,7 +1270,7 @@ event EpochFinalized(
 );
 
 /// @dev Emitted by MixinFinalizer when rewards are paid out to a pool.
-/// @param epoch The epoch when the rewards were earned.
+/// @param epoch The epoch when the rewards were paid out.
 /// @param poolId The pool's ID.
 /// @param operatorReward Amount of reward paid to pool operator.
 /// @param membersReward Amount of reward paid to pool members.
