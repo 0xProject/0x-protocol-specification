@@ -532,9 +532,10 @@ function marketBuyOrdersNoThrow(
 Calling `marketBuyOrdersNoThrow` will perform the following steps:
 
 1. For each element of `orders`:
-   1. Calculate the `remainingTakerAssetFillAmount` that has yet to be filled
+   1. Calculate the `remainingMakerAssetFillAmount` that has yet to be filled
+   1. Convert `remainingMakerAssetFillAmount` into the remaining amount of taker asset to sell, assuming the entire amount can be sold in the current order -- call this quantity `remainingTakerAssetFillAmount`.
    1. Call `fillOrder`, passing in the order, the `remainingTakerAssetFillAmount`, and the signature at the same index
-   1. If the `fillOrder` call reverts, return aan empty `fillResults` instead
+   1. If the `fillOrder` call reverts, return an empty `fillResults` instead
    1. Add the returned `fillResults` to the total `fillResults`
    1. Exit the loop if the total `makerAssetFilledAmount` is greater than or equal to the `makerAssetFillAmount` specified as an input
 1. Refund any unused value (ETH) that was sent with the message call
