@@ -33,7 +33,7 @@ This specification will describe a specific implementation of each component tha
 6. The `Coordinator` contract verifies that the approval is valid/unexpired and executes the 0x transaction by calling `Exchange.executeTransaction`.
 
 <div style="text-align: center;">
-<img src="../img/0x_Coordinator.png" style="padding-bottom: 20px; padding-top: 20px;" width="80%" />
+<img src="../img/0x_coordinator.png" style="padding-bottom: 20px; padding-top: 20px;" width="80%" />
 </div>
 
 # Message Types
