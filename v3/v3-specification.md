@@ -2329,7 +2329,7 @@ For more information about how this is used, see [hashing an order](#hashing-an-
 
 ## EIP-1271 Usage
 
-Both the [`Validator](#validator) and [`EIP1271Wallet`](#eip1271wallet) signature types are [EIP-1271](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1271.md) compliant. Note that this standard does not specify how data should be encoded when it is passed to the verifying contract's `isValidSignature` function. The `Exchange` contract will pass data to the verifying contract that is ABI encoded with one of the following function signatures, depending on if a `Order` or `ZeroExTransaction` is being validated:
+Both the [`Validator`](#validator) and [`EIP1271Wallet`](#eip1271wallet) signature types are [EIP-1271](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1271.md) compliant. Note that this standard does not specify how data should be encoded when it is passed to the verifying contract's `isValidSignature` function. The `Exchange` contract will pass data to the verifying contract that is ABI encoded with one of the following function signatures, depending on if a `Order` or `ZeroExTransaction` is being validated:
 
 ```solidity
 contract IEIP1271Data {
