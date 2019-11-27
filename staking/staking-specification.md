@@ -1,154 +1,155 @@
 # 0x protocol Staking specification
 
 ## Table of Contents
-<br>[1 Overview](#1-overview)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[1.1 Motivation](#11-motivation)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[1.2 Utility of Stake](#12-utility-of-stake)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[1.3 Staking Pools](#13-staking-pools)
-<br>[2 Architecture](#2-architecture)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[2.1 Normal Mode](#21-normal-mode)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[2.2 Catastrophic Failure Mode](#22-catastrophic-failure-mode)
-<br>[3 Contract Migrations](#3-contract-migrations)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[3.1 Deploying the system](#31-deploying-the-system)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[3.2 Upgrading Staking Proxy](#32-upgrading-staking-proxy)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[3.3 Upgrading Staking Contract](#33-upgrading-staking-contract)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[3.4 Upgrading ZRX Vault](#34-upgrading-zrx-vault)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[3.5 Handling upgrades to the ERC20 Proxy or ERC20 Asset Data](#35-handling-upgrades-to-the-erc20-proxy-or-erc20-asset-data)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[3.6 Setting Parameters](#36-setting-parameters)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[3.7 Managing Exchange Addresses](#37-managing-exchange-addresses)
-<br>[4 Epochs & Scheduling](#4-epochs--scheduling)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[4.1 Ending One Epoch, and Starting a New One](#41-ending-one-epoch-and-starting-a-new-one)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[4.1.1 Logic of `endEpoch`](#411-logic-of-endepoch)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[4.1.2 Errors by `endEpoch`](#412-errors-by-endepoch)
-<br>[5 Staking](#5-staking)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[5.0.1 Logic of `stake`](#501-logic-of-stake)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[5.0.2 Errors by `stake`](#502-errors-by-stake)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[5.0.3 Logic of `unstake`](#503-logic-of-unstake)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[5.0.4 Errors by `unstake`](#504-errors-by-unstake)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[5.1 Staking Pools](#51-staking-pools)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[5.2 Stake Status](#52-stake-status)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[5.2.1 Logic of `moveStake`](#521-logic-of-movestake)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[5.2.3 Errors by `moveStake`](#523-errors-by-movestake)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[5.3 Querying Stake](#53-querying-stake)
-<br>[6 Liquidity Incentives](#6-liquidity-incentives)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[6.1 Market Making](#61-market-making)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[6.1.1 Logic of `createStakingPool`](#611-logic-of-createstakingpool)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[6.1.2 Errors by `createStakingPool`](#612-errors-by-createstakingpool)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[6.1.3 Logic of `decreaseStakingPoolOperatorShare`](#613-logic-of-decreasestakingpooloperatorshare)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[6.1.4 Errors by `decreaseStakingPoolOperatorShare`](#614-errors-by-decreasestakingpooloperatorshare)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[6.1.5 Logic of `joinStakingPoolAsMaker`](#615-logic-of-joinstakingpoolasmaker)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[6.1.6 Errors by `joinStakingPoolAsMaker`](#616-errors-by-joinstakingpoolasmaker)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[6.2 Paying Liquidity Rewards (Finalization)](#62-paying-liquidity-rewards-finalization)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[6.2.1 Logic of `finalizePool`](#621-logic-of-finalizepool)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[6.2.2 Precision of Rewards Computation](#622-precision-of-rewards-computation)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[6.2.3 Errors by `finalizePool`](#623-errors-by-finalizepool)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[6.2.4 Logic of `withdrawDelegatorRewards`](#624-logic-of-withdrawdelegatorrewards)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[6.2.5 Errors by `withdrawDelegatorRewards`](#625-errors-by-withdrawdelegatorrewards)
-<br>[7 Batch Calls](#7-batch-calls)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[7.0.1 Logic of `batchExecute`](#701-logic-of-batchexecute)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[7.0.2 Errors by `batchExecute`](#702-errors-by-batchexecute)
-<br>[8 Paying the Protocol Fee](#8-paying-the-protocol-fee)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[8.0.1 Logic of `payProtocolFee`](#801-logic-of-payprotocolfee)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[8.0.2 Errors by `payProtocolFee`](#802-errors-by-payprotocolfee)
-<br>[9 Interfaces](#9-interfaces)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[9.1 Staking Logic Contract](#91-staking-logic-contract)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[9.2 Staking Contract State](#92-staking-contract-state)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[9.3 Staking Proxy Contract](#93-staking-proxy-contract)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[9.4 ZRX Vault](#94-zrx-vault)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[9.5 Structs](#95-structs)
-<br>[10 Events](#10-events)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[10.1 Staking Logic Contract](#101-staking-logic-contract)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[10.2 Staking Proxy Contract](#102-staking-proxy-contract)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[10.3 ZRX Vault](#103-zrx-vault)
-<br>[11 Algorithms, Data Structures & Design Patterns](#11-algorithms-data-structures--design-patterns)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[11.1 Securing the Proxy Pattern](#111-securing-the-proxy-pattern)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[11.2 Tracking for Reward Balances for Pool Members](#112-tracking-for-reward-balances-for-pool-members)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[11.2.1 Computing Rewards in Practice](#1121-computing-rewards-in-practice)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[11.2.2 Handling Epochs With No Rewards](#1122-handling-epochs-with-no-rewards)
-<br>&nbsp;&nbsp;&nbsp;&nbsp;[11.3 Stake Management](#113-stake-management)
+
+1. [Overview](#overview)
+   1. [Motivation](#motivation)
+   1. [Utility of Stake](#utility-of-stake)
+   1. [Staking Pools](#staking-pools)
+1. [Architecture](#architecture)
+   1. [Normal Mode](#normal-mode)
+   1. [Catastrophic Failure Mode](#catastrophic-failure-mode)
+1. [Contract Migrations](#contract-migrations)
+   1. [Deploying the system](#deploying-the-system)
+   1. [Upgrading `StakingProxy`](#upgrading-stakingproxy)
+   1. [Upgrading `Staking` contract](#upgrading-staking-contract)
+   1. [Upgrading `ZrxVault`](#upgrading-zrxvault)
+   1. [Handling upgrades to the ERC20Proxy](#handling-upgrades-to-the-erc20proxy)
+   1. [Setting Parameters](#setting-parameters)
+   1. [Managing Exchange Addresses](#managing-exchange-addresses)
+1. [Epochs & Scheduling](#epochs--scheduling)
+   1. [Ending One Epoch, and Starting a New One](#ending-one-epoch-and-starting-a-new-one)
+   1. [Logic of `endEpoch`](#logic-of-endepoch)
+   1. [Errors by `endEpoch`](#errors-by-endepoch)
+1. [Staking](#staking)
+   1. [Logic of `stake`](#logic-of-stake)
+   1. [Errors by `stake`](#errors-by-stake)
+   1. [Logic of `unstake`](#logic-of-unstake)
+   1. [Errors by `unstake`](#errors-by-unstake)
+   1. [Staking Pools](#staking-pools)
+   1. [Stake Status](#stake-status)
+   1. [Logic of `moveStake`](#logic-of-movestake)
+   1. [Errors by `moveStake`](#errors-by-movestake)
+   1. [Querying Stake](#querying-stake)
+1. [Liquidity Incentives](#liquidity-incentives)
+   1. [Market Making](#market-making)
+   1. [Logic of `createStakingPool`](#logic-of-createstakingpool)
+   1. [Errors by `createStakingPool`](#errors-by-createstakingpool)
+   1. [Logic of `decreaseStakingPoolOperatorShare`](#logic-of-decreasestakingpooloperatorshare)
+   1. [Errors by `decreaseStakingPoolOperatorShare`](#errors-by-decreasestakingpooloperatorshare)
+   1. [Logic of `joinStakingPoolAsMaker`](#logic-of-joinstakingpoolasmaker)
+   1. [Errors by `joinStakingPoolAsMaker`](#errors-by-joinstakingpoolasmaker)
+   1. [Paying Liquidity Rewards (Finalization)](#paying-liquidity-rewards-finalization)
+   1. [Logic of `finalizePool`](#logic-of-finalizepool)
+   1. [Precision of Rewards Computation](#precision-of-rewards-computation)
+   1. [Errors by `finalizePool`](#errors-by-finalizepool)
+   1. [Logic of `withdrawDelegatorRewards`](#logic-of-withdrawdelegatorrewards)
+   1. [Errors by `withdrawDelegatorRewards`](#errors-by-withdrawdelegatorrewards)
+1. [Batch Calls](#batch-calls)
+   1. [Logic of `batchExecute`](#logic-of-batchexecute)
+   1. [Errors by `batchExecute`](#errors-by-batchexecute)
+1. [Paying the Protocol Fee](#paying-the-protocol-fee)
+   1. [Logic of `payProtocolFee`](#logic-of-payprotocolfee)
+   1. [Errors by `payProtocolFee`](#errors-by-payprotocolfee)
+1. [Interfaces](#interfaces)
+   1. [Staking Logic Contract](#staking-logic-contract)
+   1. [`Staking` Contract State](#staking-contract-state)
+   1. [`StakingProxy` Contract](#staking-proxy-contract)
+   1. [`ZrxVault`](#zrx-vault)
+   1. [Structs](#structs)
+1. [Events](#events)
+   1. [Staking Logic Contract](#staking-logic-contract)
+   1. [`StakingProxy` Contract](#staking-proxy-contract)
+   1. [`ZrxVault`](#zrx-vault)
+1. [Algorithms, Data Structures & Design Patterns](#algorithms-data-structures--design-patterns)
+   1. [Securing the Proxy Pattern](#securing-the-proxy-pattern)
+   1. [Tracking for Reward Balances for Pool Members](#tracking-for-reward-balances-for-pool-members)
+   1. [Computing Rewards in Practice](#computing-rewards-in-practice)
+   1. [Handling Epochs With No Rewards](#handling-epochs-with-no-rewards)
+   1. [Stake Management](#stake-management)
 
 ## 1 Overview
 
 This spec outlines the architecture, implementation and usage of 0x stake-based liquidity incentives.
 
-### 1.1 Motivation
+### Motivation
 
 Staking aligns all market participants with the long-term mission and objectives of 0x. Specifically, it incentivizes ownership of the protocol among market makers through liquidity rewards. Rewards are generated by a protocol fee that is denominated in WETH and proportional to the gas cost of filling an order. The fee scales linearly with gas price to redirect proceeds from arbitrage-driven gas auctions back to market makers.
 
-### 1.2 Utility of Stake
+### Utility of Stake
 
 Token holders stake their ZRX to unlock utility within the 0x ecosystem. This includes earning liquidity rewards through market making on the 0x protocol and participating in governance over the protocol.
 
-A market maker provides liquidity by creating 0x orders that are filled by takers through the Exchange contract. The Exchange charges a fee to the taker on each fill and forwards it to the Staking contract. The fee is attributed to the maker so long as they have created a staking pool that holds at least 100 ZRX. Every 10 days, the fees are aggregated and distributed to the makers as a liquidity reward: the reward is proportional to the maker's trade volume and stake, relative to other makers.
+A market maker provides liquidity by creating 0x orders that are filled by takers through the [`Exchange`](../v3/v3-specifications.md#exchange) contract. The `Exchange` charges a fee to the taker on each fill and forwards it to the [`Staking`](#staking) contract. The fee is attributed to the maker so long as they have created a staking pool that holds at least 100 ZRX. After every 10 day epoch, the fees are aggregated and distributed to the makers as a liquidity reward: the reward is proportional to the maker's collected fees and stake relative to other makers.
 
 Governance over the protocol is conducted by voting on [ZEIPs (ZeroEx Improvement Proposals)](https://github.com/0xProject/ZEIPs). A ZEIP generally corresponds to a modification or upgrade to the 0x protocol. The ecosystem votes on the proposal, collectively deciding whether the feature will be included in a future version of the protocol. One Staked ZRX equals one vote.
 
-### 1.3 Staking Pools
+### Staking Pools
 
 Staking pools are created to leverage the weight of other stakers. A market maker, for example, can increase their liquidity reward without exposing themselves to the price fluctuations of the ZRX token. Market makers, in turn, incentivize delegators to contribute their ZRX by paying them a portion of the liquidity reward.
 
 Staking pools can also be used to increase voting power. Delegators share a portion of their vote with the pool (50% of their vote goes to the pool operator and 50% is retained by the delegator), amplifying the pool's impact in governance over 0x. This allows stakers to form cliques within the greater governance system.
 
-## 2 Architecture
+## Architecture
 
 The system of staking contracts is composed of three contracts.
 
-|Contract|Description |
-|--|--|
-|Staking Contract| An upgradeable/stateless contract that implements staking logic|
-|Staking Proxy|Stores staking state and delegates to the Staking Contract|
-|ZRX Vault|Securely holds staked ZRX Tokens|
+| Contract       | Description                                                     |
+| -------------- | --------------------------------------------------------------- |
+| `Staking`      | An upgradeable/stateless contract that implements staking logic |
+| `StakingProxy` | Stores staking state and delegates to the `Staking` contract    |
+| `ZrxVault`     | Securely holds staked ZRX Tokens                                |
 
-### 2.1 Normal Mode
+### Normal Mode
 
 The diagram below shows how the staking contracts connect to each other and the broader 0x ecosystem.
 
 <p align="center"><img src="./assets/Staking%20Architecture%20-%20Basic.png" width="700" /></p>
 
-### 2.2 Catastrophic Failure Mode
+### Catastrophic Failure Mode
 
 In this worst-case scenario, state has been irreparably corrupted and the staking contracts must be redeployed. Users would withdraw their ZRX and re-stake under the new system.
 
-1. The 0x Exchange contract stops charging protocol fees.
-2. The ZRX vault is detached from the staking contract.
-3. Users withdraw their funds from the ZRX vault directly.
+1. The 0x `Exchange` contract stops charging protocol fees.
+2. The `ZrxVault` is detached from the staking contract.
+3. Users withdraw their funds from the `ZrxVault` directly.
 
 <p align="center"><img src="./assets/Staking%20Architecture%20-%20Catastrophic%20Failure.png" width="750" /></p>
 
-## 3 Contract Migrations
+## Contract Migrations
 
-This section outlines steps for managing the system of smart contracts. Operations are atomically executed as a group. Contracts are owned by the 0x Multisig.
+This section outlines steps for managing the system of smart contracts. Operations are atomically executed as a group. Contracts are owned by the [`ZeroExGovernor`](../v3/zero-ex-governor.md).
 
-### 3.1 Deploying the system
+### Deploying the system
 
-1. Deploy ZRX Vault.
-2. Deploy Staking Contract (address of ZRX Vault is hardcoded in this contract).
-3. Deploy Staking Proxy.
-4. Attach Staking Contract to Staking Proxy.
+1. Deploy `ZrxVault`.
+2. Deploy `Staking` contract (address of `ZrxVault` is hardcoded in this contract).
+3. Deploy `StakingProxy`.
+4. Attach `Staking` contract to `StakingProxy`.
 
-### 3.2 Upgrading Staking Proxy
+### Upgrading `StakingProxy`
 
-1. Deploy new Staking Proxy.
-2. Set Staking Proxy in ZRX Vault.
-3. Set Staking Proxy in 0x Exchanges.
+1. Deploy new `StakingProxy`.
+2. Set `StakingProxy` in `ZrxVault`.
+3. Set `StakingProxy` in 0x Exchanges.
 
-### 3.3 Upgrading Staking Contract
+### Upgrading `Staking` contract
 
-1. Deploy new Staking Contract.
-2. Attach Staking Contract to Staking Proxy.
+1. Deploy new `Staking` contract.
+2. Attach `Staking` contract to `StakingProxy`.
 
-### 3.4 Upgrading ZRX Vault
+### Upgrading `ZrxVault`
 
-The ZRX Vault address is hardcoded in the Staking Contract and should not be upgraded. If it does need to be changed, then set the current ZRX Vault into Catastrophic Failure mode (allowing users to withdraw their ZRX) and redeploy the entire system (section 3.1).
+The `ZrxVault` address is hardcoded in the `Staking` contract and should not be upgraded. If it does need to be changed, then set the current `ZrxVault` into Catastrophic Failure mode (allowing users to withdraw their ZRX) and redeploy the entire system.
 
-### 3.5 Handling upgrades to the ERC20 Proxy or ERC20 Asset Data
+### Handling upgrades to the ERC20Proxy
 
-The staking contracts share the Exchange's ERC20 proxy. It is possible this contract could get re-deployed for reasons outside of staking.
+The `ZrxVault` shares the `Exchange` contract's `ERC20Proxy`. It is possible this contract could get re-deployed for reasons outside of staking.
 
-1. Update the ERC20 Asset Proxy in the ZRX Vault.
-2. Update the ZRX Asset Data (if necessary) in the ZRX Vault.
+1. Update the ERC20 Asset Proxy in the `ZrxVault`.
+2. Update the ZRX Asset Data (if necessary) in the `ZrxVault`.
 
-### 3.6 Setting Parameters
+### Setting Parameters
 
 Configurable parameters can be set or queried using the functions below.
 
@@ -187,7 +188,9 @@ function getParams()
     );
 ```
 
-### 3.7 Managing Exchange Addresses
+Please refer to [ZEIP-61](https://github.com/0xProject/ZEIPs/issues/61) for a description of each parameter and justification for their starting values.
+
+### Managing Exchange Addresses
 
 Exchanges that generate protocol fees must be registered in the staking contract by an authorized address. The interface is described below.
 
@@ -210,13 +213,13 @@ function validExchanges(address addr)
     returns (bool isValid);
 ```
 
-## 4 Epochs & Scheduling
+## Epochs & Scheduling
 
-All processes in the system are segmented into contiguous time intervals, called epochs. Epochs have a fixed minimum period (10 days at time of writing), which is configurable via [MixinParams](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/sys/MixinParams.sol). Epochs serve as the basis for all other timeframes within the system, which provides a more stable and consistent scheduling metric than blocks or block timestamps.
+All processes in the system are segmented into contiguous time intervals, called epochs. Epochs have a fixed minimum period (10 days at time of writing), which is configurable via [MixinParams](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/sys/MixinParams.sol). Epochs serve as the basis for all other timeframes within the system, which provides a more stable and consistent scheduling metric than blocks or block timestamps.
 
 <p align="center"><img src="./assets/Epochs.png" width="700" /></p>
 
-### 4.1 Ending One Epoch, and Starting a New One
+### Ending One Epoch, and Starting a New One
 
 A new epoch automatically begins when the current epoch ends. Anyone can end an epoch by calling the staking contract after the minimum epoch period has elapsed.
 
@@ -232,28 +235,28 @@ function endEpoch()
 
 The return value describes the number of pools to finalize; this concept is described in [Section 6.2](#62-paying-liquidity-rewards-finalization).
 
-#### 4.1.1 Logic of `endEpoch`
+#### Logic of `endEpoch`
 
 When this function is called:
+
 1. Assert the previous epoch (`currentEpoch-1`) is finalized: all rewards have been paid to pools.
 2. Wrap any ETH into WETH (protocol fees can be paid in ETH or WETH, but rewards are always paid in WETH).
 3. Store statistics on the epoch, including the total WETH in the contract - this value is the total reward available to pools.
-4. Emit [EpochEnded](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IStakingEvents.sol#L60) event.
+4. Emit [EpochEnded](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/interfaces/IStakingEvents.sol#L60) event.
 5. Assert that enough time has elapsed to increment the epoch.
 6. Increase the `currentEpoch` by 1.
-7. If no pools earned rewards this epoch then the epoch is implicitly finalized; emit the [EpochFinalized](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IStakingEvents.sol#L72) Event.
+7. If no pools earned rewards this epoch then the epoch is implicitly finalized; emit the [EpochFinalized](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/interfaces/IStakingEvents.sol#L72) Event.
 
-#### 4.1.2 Errors by `endEpoch`
+#### Errors by `endEpoch`
 
-|Error|Condition|
-|--|--|
-| [PreviousEpochNotFinalizedError](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/libs/LibStakingRichErrors.sol#L294) |The previous epoch is not finalized: at least one pool has not been paid its reward.|
-|[BlockTimestampTooLowError](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/libs/LibStakingRichErrors.sol#L173)|Not enough time has elapsed to end the epoch.|
+| Error                                                                                                                                                          | Condition                                                                            |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| [PreviousEpochNotFinalizedError](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/libs/LibStakingRichErrors.sol#L294) | The previous epoch is not finalized: at least one pool has not been paid its reward. |
+| [BlockTimestampTooLowError](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/libs/LibStakingRichErrors.sol#L173)      | Not enough time has elapsed to end the epoch.                                        |
 
+## Staking
 
-## 5 Staking
-
-ZRX is staked by depositing tokens into the Staking Contract. The diagram below illustrates this workflow.
+ZRX is staked by depositing tokens into the `Staking` contract. The diagram below illustrates this workflow.
 
 <p align="center"><img src="./assets/Staking.png" width="700" /></p>
 
@@ -262,13 +265,13 @@ ZRX can simlarly be unstaked by withdrawing tokens from the Staking contract. Th
 Below is the interface for staking and unstaking.
 
 ```solidity
-/// @dev Stake ZRX tokens. Tokens are deposited into the ZRX Vault.
+/// @dev Stake ZRX tokens. Tokens are deposited into the `ZrxVault`.
 ///      Unstake to retrieve the ZRX.
 /// @param amount of ZRX to stake.
 function stake(uint256 amount)
     external;
 
-/// @dev Unstake. Tokens are withdrawn from the ZRX Vault and returned to
+/// @dev Unstake. Tokens are withdrawn from the `ZrxVault` and returned to
 ///      the staker. Stake must be in the 'undelegated' status in both the
 ///      current and next epoch in order to be unstaked.
 /// @param amount of ZRX to unstake.
@@ -276,57 +279,59 @@ function unstake(uint256 amount)
     external;
 ```
 
-#### 5.0.1 Logic of `stake`
+#### Logic of `stake`
 
-1. Deposit ZRX tokens into ZRX Vault.
-2. ZRX Vault emits the [Deposit](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IZrxVault.sol#L34) event.
+1. Deposit ZRX tokens into `ZrxVault`.
+2. `ZrxVault` emits the [Deposit](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/interfaces/IZrxVault.sol#L34) event.
 3. Increase the sender's stake balance.
-4. Emit the [Stake](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IStakingEvents.sol#L9) event.
+4. Emit the [Stake](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/interfaces/IStakingEvents.sol#L9) event.
 
-#### 5.0.2 Errors by `stake`
+#### Errors by `stake`
 
-|Error|Condition|
-|--|--|
-| [StandardError("TRANSFER_FAILED")](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/asset-proxy/contracts/src/ERC20Proxy.sol#L162) |Failed to deposit tokens into the ZRX vault; likely the user had an insufficient ZRX balance.|
+| Error                                                                                                                                                 | Condition                                                                                      |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| [StandardError("TRANSFER_FAILED")](https://github.com/0xProject/0x-monorepo/blob/development/contracts/asset-proxy/contracts/src/ERC20Proxy.sol#L162) | Failed to deposit tokens into the `ZrxVault`; likely the user had an insufficient ZRX balance. |
 
-#### 5.0.3 Logic of `unstake`
+#### Logic of `unstake`
 
 1. Compute amount of staked ZRX that can be unstaked: this is the `min` of the user's undelegated stake in the current and next epoch.
 2. Assert the amount to unstake is less or equal to the amount computed in (1).
 3. Decrease the user's stake in the current and next epoch.
-3. Transfer ZRX tokens from the ZRX Vault to the user.
-4. The ZRX Vault emits the [Withdraw](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IZrxVault.sol#L42) event.
-5. Emit the [Unstake](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IStakingEvents.sol#L17) event.
+4. Transfer ZRX tokens from the `ZrxVault` to the user.
+5. The `ZrxVault` emits the [Withdraw](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/interfaces/IZrxVault.sol#L42) event.
+6. Emit the [Unstake](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/interfaces/IStakingEvents.sol#L17) event.
 
-#### 5.0.4 Errors by `unstake`
+#### Errors by `unstake`
 
-|Error|Condition|
-|--|--|
-| [InsufficientBalanceError](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/libs/LibStakingRichErrors.sol#L143) |Staked ZRX balance too low.|
-| [StandardError("TRANSFER_FAILED")](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/asset-proxy/contracts/src/ERC20Proxy.sol#L162) |Failed to withdraw tokens from the ZRX vault|
+| Error                                                                                                                                                    | Condition                                     |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| [InsufficientBalanceError](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/libs/LibStakingRichErrors.sol#L143) | Staked ZRX balance too low.                   |
+| [StandardError("TRANSFER_FAILED")](https://github.com/0xProject/0x-monorepo/blob/development/contracts/asset-proxy/contracts/src/ERC20Proxy.sol#L162)    | Failed to withdraw tokens from the `ZrxVault` |
 
-### 5.1 Staking Pools
+### Staking Pools
 
 Staking pools can be created to leverage the weight of other stakers. A pool has a single operator and any number of members, who delegate their ZRX to the pool. Any staker can create a pool, although at present it is only beneficial for market makers to create staking pools. This is discussed more in [Section 6](#6-liquidity-incentives), along with details on creating a staking pool.
 
-|Term|Definition  |
-|--|--|
-| Pool Id | A unique id generated by this contract and assigned to a pool when it is created. |
-| Pool Operator | The creator and operator of the pool. |
-| Pool Members | Stakers who delegate their ZRX to the pool in exchange for a portion of liquidity rewards. |
-| Market Makers | Makers on the 0x protocol whose orders generate liquidity rewards for the pool. |
+| Term          | Definition                                                                                 |
+| ------------- | ------------------------------------------------------------------------------------------ |
+| Pool Id       | A unique id generated by this contract and assigned to a pool when it is created.          |
+| Pool Operator | The creator and operator of the pool.                                                      |
+| Pool Members  | Stakers who delegate their ZRX to the pool in exchange for a portion of liquidity rewards. |
+| Market Makers | Makers on the 0x protocol whose orders generate liquidity rewards for the pool.            |
 
 It is presently intended for the pool operator to be sole the market maker of the pool. This is incentivized by making it more profitable for a maker to create their own pool over joining an existing one: the operator's stake is weighted greater than stake delegated by members when computing liquidity rewards.
 
-### 5.2 Stake Status
+### Stake Status
+
 Each staked ZRX has an associated status that reflects its utility within the 0x Ecosystem.
 
-|Status|Definition  |
-|--|--|
-| Undelegated | Can be used to participate in governance. This is the default status. |
-| Delegated | ZRX is delegated to a pool; can be used in governance and contributes to liquidity rewards. |
+| Status      | Definition                                                                                  |
+| ----------- | ------------------------------------------------------------------------------------------- |
+| Undelegated | Can be used to participate in governance. This is the default status.                       |
+| Delegated   | ZRX is delegated to a pool; can be used in governance and contributes to liquidity rewards. |
 
 There is a single function for moving stake between statuses:
+
 ```solidity
 /// @dev Statuses that stake can exist in.
 ///      Any stake can be (re)delegated effective at the next epoch
@@ -360,34 +365,35 @@ function moveStake(
 
 Note that when stake is moved its new status comes into effect on the _next epoch_. Stake's status remains unchanged over the duration of an epoch. See [section 11.4](#114-stake-management) for informaton on the implementation of stake accounting.
 
-#### 5.2.1 Logic of `moveStake`
+#### Logic of `moveStake`
 
 1. No-op if amount to move is zero or moving both from and to the `undelegated` state.
 2. If moving from `delegated` state then `undelegate` the stake.
-    1. Sanity check the pool we're undelegating from exists.
-    1. Withdraw any rewards owed to the delegator by this pool (see [Section 6.2.3](#623-logic-of-withdrawDelegatorRewards)).
-    1. Decrease how much stake the staker has delegated to the input pool.
-    1. Decrease how much stake has been delegated to pool.
-    1. Decrease balance of global delegated stake (aggregated across all stakers).
+   1. Sanity check the pool we're undelegating from exists.
+   1. Withdraw any rewards owed to the delegator by this pool (see [Section 6.2.3](#623-logic-of-withdrawDelegatorRewards)).
+   1. Decrease how much stake the staker has delegated to the input pool.
+   1. Decrease how much stake has been delegated to pool.
+   1. Decrease balance of global delegated stake (aggregated across all stakers).
 3. If moving to `delegated` state then `delegate` the stake.
-    1. Sanity check the pool we're delegating to exists.
-    1. Withdraw any rewards owed to the delegator by this pool (see [Section 6.2.3](#623-logic-of-withdrawDelegatorRewards)).
-    1. Increase how much stake the staker has delegated to the input pool.
-    1. Increase how much stake has been delegated to pool.
-    1. Increase balance of global delegated stake (aggregated across all stakers).
+   1. Sanity check the pool we're delegating to exists.
+   1. Withdraw any rewards owed to the delegator by this pool (see [Section 6.2.3](#623-logic-of-withdrawDelegatorRewards)).
+   1. Increase how much stake the staker has delegated to the input pool.
+   1. Increase how much stake has been delegated to pool.
+   1. Increase balance of global delegated stake (aggregated across all stakers).
 4. Execute move.
-5. Emit the [MoveStake](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IStakingEvents.sol#L25) event.
+5. Emit the [MoveStake](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/interfaces/IStakingEvents.sol#L25) event.
 
-#### 5.2.3 Errors by `moveStake`
+#### Errors by `moveStake`
 
-|Error|Condition|
-|--|--|
-|[InsufficientBalanceError](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/libs/LibStakingRichErrors.sol#L143)|Staked ZRX balance too low.|
-|[PoolExistenceError](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/libs/LibStakingRichErrors.sol#L234)|Tried to un/delegate when pool does not exist.|
-|[PoolNotFinalizedError](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/libs/LibStakingRichErrors.sol#L309)|The pool being un/delegated is not finalized: it is still owed rewards from the previous epoch. Fix this by calling `finalizePool`.|
+| Error                                                                                                                                                    | Condition                                                                                                                           |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| [InsufficientBalanceError](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/libs/LibStakingRichErrors.sol#L143) | Staked ZRX balance too low.                                                                                                         |
+| [PoolExistenceError](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/libs/LibStakingRichErrors.sol#L234)       | Tried to un/delegate when pool does not exist.                                                                                      |
+| [PoolNotFinalizedError](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/libs/LibStakingRichErrors.sol#L309)    | The pool being un/delegated is not finalized: it is still owed rewards from the previous epoch. Fix this by calling `finalizePool`. |
 
-### 5.3 Querying Stake
-The interface below describes how to query balances in the Staking Contract.
+### Querying Stake
+
+The interface below describes how to query balances in the `Staking` contract.
 
 ```solidity
 /// @dev Encapsulates a balance for the current and next epochs.
@@ -449,7 +455,7 @@ function getTotalStakeDelegatedToPool(bytes32 poolId)
     returns (IStructs.StoredBalance memory balance);
 ```
 
-## 6 Liquidity Incentives
+## Liquidity Incentives
 
 Liquidity incentives are used to align market participants with long-term objectives of the 0x protocol. Fees are charged by the 0x protocol and paid to market makers as a reward for their trade volume and amount of ZRX staked.
 
@@ -457,9 +463,9 @@ Liquidity incentives are used to align market participants with long-term object
 
 The protocol fee is paid in either WETH or ETH. If ETH is not included in the transaction (by setting `msg.value`) then the fee will be taken in WETH from the taker, as illustrated in the diagram above.
 
-Note also that the WETH allowances are set in the Staking Proxy opposed to the standard ERC20 Asset Proxy, used by the exchange. There are two reasons for this. Firstly, this separation means that users must explicitly opt-in to fees (no hidden fees). Secondly, the Staking Contract only needs access to WETH, whereas the ERC20 Proxy would provide access to _all_ tokens that a user has given allowance for; since the Staking Contract is upgradable, this separation reduces the attack surface.
+Note also that the WETH allowances are set in the `StakingProxy` opposed to the standard ERC20 Asset Proxy, used by the exchange. There are two reasons for this. Firstly, this separation means that users must explicitly opt-in to fees (no hidden fees). Secondly, the `Staking` contract only needs access to WETH, whereas the ERC20 Proxy would provide access to _all_ tokens that a user has given allowance for; since the `Staking` contract is upgradable, this separation reduces the attack surface.
 
-### 6.1 Market Making
+### Market Making
 
 We want to align market makers with the long-term objectives of the 0x protocol; however, the immobility of staked ZRX exposes makers to potential short-term volatility in the crypto markets. This risk is mitigated through staking pools.
 
@@ -512,58 +518,58 @@ function getStakingPool(bytes32 poolId)
     returns (IStructs.Pool memory);
 ```
 
-#### 6.1.1 Logic of `createStakingPool`
+#### Logic of `createStakingPool`
 
 1. Generate unique Pool Id.
 2. Assert the operator's share of pool rewards is valid.
 3. Store the newly created pool's information in state. This includes the operator's address and their share of future liquidity rewards.
-4. Emit [StakingPoolCreated](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IStakingEvents.sol#L108) event.
+4. Emit [StakingPoolCreated](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/interfaces/IStakingEvents.sol#L108) event.
 5. If requested, add the operator as a market maker for the pool: fees generated by their orders will go to the pool. (See [Section 6.1.5](#615-logic-of-joinstakingpoolasmaker))
 
-#### 6.1.2 Errors by `createStakingPool`
+#### Errors by `createStakingPool`
 
-|Error|Condition|
-|--|--|
-|[OperatorShareError](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/libs/LibStakingRichErrors.sol#L217)|Operator's share is not a valid percentage (between [0..100])|
+| Error                                                                                                                                              | Condition                                                     |
+| -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| [OperatorShareError](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/libs/LibStakingRichErrors.sol#L217) | Operator's share is not a valid percentage (between [0..100]) |
 
-#### 6.1.3 Logic of `decreaseStakingPoolOperatorShare`
+#### Logic of `decreaseStakingPoolOperatorShare`
 
 1. Assert sender is pool operator.
 2. Assert new operator share is valid: must be a valid percentage that's less or equal to current value.
 3. Set new operator share in state.
-4. Emit [OperatorShareDecreased](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IStakingEvents.sol#L126).
+4. Emit [OperatorShareDecreased](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/interfaces/IStakingEvents.sol#L126).
 
-#### 6.1.4 Errors by `decreaseStakingPoolOperatorShare`
+#### Errors by `decreaseStakingPoolOperatorShare`
 
-|Error|Condition|
-|--|--|
-|[OnlyCallableByPoolOperatorError](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/libs/LibStakingRichErrors.sol#158)|Sender must be pool operator.|
-|[OperatorShareError](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/libs/LibStakingRichErrors.sol#L217)|Operator's share is not a valid percentage (between [0..100])|
+| Error                                                                                                                                                          | Condition                                                     |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| [OnlyCallableByPoolOperatorError](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/libs/LibStakingRichErrors.sol#158) | Sender must be pool operator.                                 |
+| [OperatorShareError](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/libs/LibStakingRichErrors.sol#L217)             | Operator's share is not a valid percentage (between [0..100]) |
 
-#### 6.1.5 Logic of `joinStakingPoolAsMaker`
+#### Logic of `joinStakingPoolAsMaker`
 
 1. Set the staking pool for the maker (sender). Note that a market maker can only be associated with a single pool.
-2. Emit [MakerStakingPoolSet](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IStakingEvents.sol#117) Event.
+2. Emit [MakerStakingPoolSet](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/interfaces/IStakingEvents.sol#117) Event.
 
-#### 6.1.6 Errors by `joinStakingPoolAsMaker`
+#### Errors by `joinStakingPoolAsMaker`
 
 No errors are triggered by this function.
 
-### 6.2 Paying Liquidity Rewards (Finalization)
+### Paying Liquidity Rewards (Finalization)
 
 The Cobb-Douglas function is used to compute how much of the aggregate fees should be rewarded to each market maker.
 
 <p align="center"><img src="./assets/CobbDouglas.png" width="200" /></p>
 
-|Term|Definition  |
-|--|--|
-| _r_ | Reward for a specific market maker. |
-| _R_ | Total reward to be split between all market makers. |
-| _f_ | Total fees earned by the market maker this epoch. |
-| _F_ | Total fees earned across all (staked) market maker pools this epoch. |
-| _d_ | Total weighted ZRX staked by the market maker's pool this epoch. |
-| _D_ | Total weighted ZRX staked across all (active) market maker pools this epoch. |
-| _α_ | A constant in the range [0..1] that determines the weight of fees vs stake. |
+| Term | Definition                                                                   |
+| ---- | ---------------------------------------------------------------------------- |
+| _r_  | Reward for a specific market maker.                                          |
+| _R_  | Total reward to be split between all market makers.                          |
+| _f_  | Total fees earned by the market maker this epoch.                            |
+| _F_  | Total fees earned across all (staked) market maker pools this epoch.         |
+| _d_  | Total weighted ZRX staked by the market maker's pool this epoch.             |
+| _D_  | Total weighted ZRX staked across all (active) market maker pools this epoch. |
+| _α_  | A constant in the range [0..1] that determines the weight of fees vs stake.  |
 
 At the end of an epoch, each pool that traded can retrieve their liquidity reward. This is done by calling the finalize function. Dust pools (that have less than 100 ZRX staked) are not elegible for rewards.
 
@@ -608,7 +614,7 @@ function computeRewardBalanceOfDelegator(bytes32 poolId, address member)
     returns (uint256 reward);
 ```
 
-#### 6.2.1 Logic of `finalizePool`
+#### Logic of `finalizePool`
 
 Finalizing pays any unsettled liquidity rewards from the previous epoch to the pool.
 
@@ -621,42 +627,41 @@ Finalizing pays any unsettled liquidity rewards from the previous epoch to the p
 7. Of the unsettled rewards, compute how much is owed to the operator and collectively how much to the pool members.
 8. Pay reward in WETH to the operator.
 9. Store the reward held collectively by the pool members in state. This is used later for each member to compute their individual portion.
-10. Emit [RewardsPaid](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IStakingEvents.sol#L83) Event.
+10. Emit [RewardsPaid](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/interfaces/IStakingEvents.sol#L83) Event.
 11. Update aggregated stats in state to reflect that this pool's rewards have been settled.
-12. If all pool's are settled then the previous epoch is finalized. Emit the [EpochFinalized](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IStakingEvents.sol#L72) Event.
+12. If all pool's are settled then the previous epoch is finalized. Emit the [EpochFinalized](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/interfaces/IStakingEvents.sol#L72) Event.
 
-#### 6.2.2 Precision of Rewards Computation
+#### Precision of Rewards Computation
 
-The [solidity](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/libs/LibCobbDouglas.sol) implementation of the Cobb-Douglas function ultimately relies on [Taylor series approximations](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/libs/LibFixedMath.sol) using fixed-point, signed-integer math. These approximations have an expected minimum precision of `12` digits.
+The [solidity](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/libs/LibCobbDouglas.sol) implementation of the Cobb-Douglas function ultimately relies on [Taylor series approximations](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/libs/LibFixedMath.sol) using fixed-point, signed-integer math. These approximations have an expected minimum precision of `12` digits.
 
-This can result in very small errors in reward computation, in either direction. In order to guard against the sum of total rewards exceeding the total rewards available, the computed reward for a pool is always [clipped](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/sys/MixinFinalizer.sol#L247) to the total (unfinalized) rewards remaining.
+This can result in very small errors in reward computation, in either direction. In order to guard against the sum of total rewards exceeding the total rewards available, the computed reward for a pool is always [clipped](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/sys/MixinFinalizer.sol#L247) to the total (unfinalized) rewards remaining.
 
-#### 6.2.3 Errors by `finalizePool`
+#### Errors by `finalizePool`
 
 The errors in finalize pool are all math errors related to reward computation. If any of these are triggered then it indicates= an internal logic error.
 
-|Error|Condition|
-|--|--|
-|[SignedValueError](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/libs/LibFixedMathRichErrors.sol#51)|An error in signed computation.|
-|[UnsignedValueError](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/libs/LibFixedMathRichErrors.sol#L66)|An error in unsigned computation.|
-|[BinOpError](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/libs/LibFixedMathRichErrors.sol#L81)|An overflow or underflow error when performing unsigned arithmetic.|
+| Error                                                                                                                                               | Condition                                                           |
+| --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| [SignedValueError](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/libs/LibFixedMathRichErrors.sol#51)    | An error in signed computation.                                     |
+| [UnsignedValueError](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/libs/LibFixedMathRichErrors.sol#L66) | An error in unsigned computation.                                   |
+| [BinOpError](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/libs/LibFixedMathRichErrors.sol#L81)         | An overflow or underflow error when performing unsigned arithmetic. |
 
-
-#### 6.2.4 Logic of `withdrawDelegatorRewards`
+#### Logic of `withdrawDelegatorRewards`
 
 1. Assert the pool's rewards have been settled in the current epoch via `finalizePool`.
 2. Compute the portion of the pool's reward owed to the delegator.
 3. If the amount owed is non-zero then transfer it in WETH to the delegator.
 4. Update reward tracking metrics to reflect that a delegator interacted with the pool. See [Section 10.3](#103-tracking-for-reward-balances-for-pool-members) for more information on reward tracking.
 
-#### 6.2.5 Errors by `withdrawDelegatorRewards`
+#### Errors by `withdrawDelegatorRewards`
 
-|Error|Condition|
-|--|--|
-|[PoolNotFinalizedError](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/libs/LibStakingRichErrors.sol#L309)|The pool is not finalized: it is still owed rewards from the previous epoch. Fix this by calling `finalizePool`.|
-|[BinOpError](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/libs/LibFixedMathRichErrors.sol#L81)|An overflow or underflow error when performing unsigned arithmetic.|
+| Error                                                                                                                                                 | Condition                                                                                                        |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| [PoolNotFinalizedError](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/libs/LibStakingRichErrors.sol#L309) | The pool is not finalized: it is still owed rewards from the previous epoch. Fix this by calling `finalizePool`. |
+| [BinOpError](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/libs/LibFixedMathRichErrors.sol#L81)           | An overflow or underflow error when performing unsigned arithmetic.                                              |
 
-## 7 Batch Calls
+## Batch Calls
 
 The staking contract supports arbitrary batch function calls to the staking logic contract, allowing for several operations in a single transaction. For example, finalizing several pools in one transaction.
 
@@ -671,21 +676,21 @@ function batchExecute(bytes[] calldata data)
     returns (bytes[] memory batchReturnData);
 ```
 
-#### 7.0.1 Logic of `batchExecute`
+#### Logic of `batchExecute`
 
-1. Assert there is a Staking Contract connected to the proxy.
-2. Execute each call to the Staking Contract, constructing an array of return data.
+1. Assert there is a `Staking` contract connected to the proxy.
+2. Execute each call to the `Staking` contract, constructing an array of return data.
 3. Revert if a single call fails.
 
-#### 7.0.2 Errors by `batchExecute`
+#### Errors by `batchExecute`
 
-|Error|Condition|
-|--|--|
-|[ProxyDestinationCannotBeNilError](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/libs/LibStakingRichErrors.sol#L286)|The Staking Proxy has not been correctly configured.|
+| Error                                                                                                                                                            | Condition                                             |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| [ProxyDestinationCannotBeNilError](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/libs/LibStakingRichErrors.sol#L286) | The `StakingProxy` has not been correctly configured. |
 
 Note: any error generated in the Staking Logic contract will be propagated back to the client.
 
-## 8 Paying the Protocol Fee
+## Paying the Protocol Fee
 
 Protocol fees are paid to the Staking contract by the Exchange contract. The Staking logic is unopinionated about the amount paid: it is the responsibility of the exchange to compute this value. The fee can be paid in either ETH or WETH and are paid out as rewards to staking pools during finalization.
 
@@ -706,30 +711,29 @@ function payProtocolFee(
     onlyExchange;
 ```
 
-#### 8.0.1 Logic of `payProtocolFee`
+#### Logic of `payProtocolFee`
 
 1. Assert that either (i) the value passed into the Staking contract matches the fee, or (ii) the amount passed in is zero.
-2. If the amount of ETH passed in is zero, then transfer the fee as WETH. Note that users must have WETH allowance set on the Staking Proxy to facilitate this transfer.
+2. If the amount of ETH passed in is zero, then transfer the fee as WETH. Note that users must have WETH allowance set on the `StakingProxy` to facilitate this transfer.
 3. Lookup the staking pool the maker has associated with. If no pool, then return.
 4. Check if the pool holds the minimum required stake (see [Section 3.6](#36-setting-params)).
 5. If this is the first fee earned by the pool in this epoch, then:
-    i. Record that they earned fees this epoch (and hence must be paid rewards in the next epoch, via finalization).
-    ii. Emit the [StakingPoolEarnedRewardsInEpoch](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IStakingEvents.sol#L49) Event.
-5. Record the fee and attribute it to the pool.
+   i. Record that they earned fees this epoch (and hence must be paid rewards in the next epoch, via finalization).
+   ii. Emit the [StakingPoolEarnedRewardsInEpoch](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/interfaces/IStakingEvents.sol#L49) Event.
+6. Record the fee and attribute it to the pool.
 
-#### 8.0.2 Errors by `payProtocolFee`
+#### Errors by `payProtocolFee`
 
-|Error|Condition|
-|--|--|
-|[InvalidProtocolFeePaymentError](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/libs/LibStakingRichErrors.sol#L249)|The protocol fee paid by the Exchange as ETH was non-zero and did not match the expected protocol fee amount.|
-|[StandardError("")](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/erc20/contracts/src/WETH9.sol#L65)|The payer had an insufficient WETH balance.|
+| Error                                                                                                                                                          | Condition                                                                                                     |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| [InvalidProtocolFeePaymentError](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/libs/LibStakingRichErrors.sol#L249) | The protocol fee paid by the Exchange as ETH was non-zero and did not match the expected protocol fee amount. |
+| [StandardError("")](https://github.com/0xProject/0x-monorepo/blob/development/contracts/erc20/contracts/src/WETH9.sol#L65)                                     | The payer had an insufficient WETH balance.                                                                   |
 
+## Interfaces
 
-## 9 Interfaces
+### Staking Logic Contract
 
-### 9.1 Staking Logic Contract
-
-This interface is defined in [IStaking](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IStaking.sol).
+This interface is defined in [IStaking](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/interfaces/IStaking.sol).
 
 ```solidity
 /// @dev Adds a new exchange address
@@ -941,13 +945,13 @@ function setParams(
 )
     external;
 
-/// @dev Stake ZRX tokens. Tokens are deposited into the ZRX Vault.
+/// @dev Stake ZRX tokens. Tokens are deposited into the `ZrxVault`.
 ///      Unstake to retrieve the ZRX. Stake is in the 'Active' status.
 /// @param amount of ZRX to stake.
 function stake(uint256 amount)
     external;
 
-/// @dev Unstake. Tokens are withdrawn from the ZRX Vault and returned to
+/// @dev Unstake. Tokens are withdrawn from the `ZrxVault` and returned to
 ///      the staker. Stake must be in the 'undelegated' status in both the
 ///      current and next epoch in order to be unstaked.
 /// @param amount of ZRX to unstake.
@@ -961,9 +965,9 @@ function withdrawDelegatorRewards(bytes32 poolId)
     external;
 ```
 
-### 9.2 Staking Contract State
+### `Staking` contract State
 
-This interface is defined in [IStorage](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IStorage.sol).
+This interface is defined in [IStorage](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/interfaces/IStorage.sol).
 
 ```solidity
 function stakingContract()
@@ -1027,9 +1031,9 @@ function cobbDouglasAlphaDenominator()
     returns (uint32);
 ```
 
-### 9.3 Staking Proxy Contract
+### `StakingProxy` Contract
 
-This interface is defined in [IStakingProxy](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IStakingProxy.sol).
+This interface is defined in [IStakingProxy](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/interfaces/IStakingProxy.sol).
 
 ```solidity
 /// @dev Attach a staking contract; future calls will be delegated to the staking contract.
@@ -1053,9 +1057,9 @@ function assertValidStorageParams()
     view;
 ```
 
-### 9.4 ZRX Vault
+### `ZrxVault`
 
-This interface is defined in [IZrxVault](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IZrxVault.sol).
+This interface is defined in [IZrxVault](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/interfaces/IZrxVault.sol).
 
 ```solidity
 /// @dev Sets the address of the StakingProxy contract.
@@ -1114,9 +1118,9 @@ function balanceOfZrxVault()
     returns (uint256);
 ```
 
-### 9.5 Structs
+### Structs
 
-This interface is defined in [IStructs](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IStructs.sol).
+This interface is defined in [IStructs](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/interfaces/IStructs.sol).
 
 ```solidity
 /// @dev Stats for a pool that earned rewards.
@@ -1190,11 +1194,11 @@ struct Pool {
 }
 ```
 
-## 10 Events
+## Events
 
-### 10.1 Staking Logic Contract
+### Staking Logic Contract
 
-These events are defined in [IStakingEvents](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IStakingEvents.sol).
+These events are defined in [IStakingEvents](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/interfaces/IStakingEvents.sol).
 
 ```solidity
 /// @dev Emitted by MixinStake when ZRX is staked.
@@ -1324,9 +1328,9 @@ event OperatorShareDecreased(
 );
 ```
 
-### 10.2 Staking Proxy Contract
+### `StakingProxy` Contract
 
-These events are defined in [IStakingProxy](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IStakingProxy.sol).
+These events are defined in [IStakingProxy](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/interfaces/IStakingProxy.sol).
 
 ```solidity
 /// @dev Emitted by StakingProxy when a staking contract is attached.
@@ -1339,9 +1343,9 @@ event StakingContractAttachedToProxy(
 event StakingContractDetachedFromProxy();
 ```
 
-### 10.3 ZRX Vault
+### `ZrxVault`
 
-These events are defined in [IZrxVault](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IZrxVault.sol).
+These events are defined in [IZrxVault](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/interfaces/IZrxVault.sol).
 
 ```solidity
 /// @dev Emmitted whenever a StakingProxy is set in a vault.
@@ -1371,11 +1375,11 @@ event Withdraw(
 event ZrxProxySet(address zrxProxyAddress);
 ```
 
-## 11 Algorithms, Data Structures & Design Patterns
+## Algorithms, Data Structures & Design Patterns
 
 This section dives deeper into the mechanics of the smart contracts.
 
-### 11.1 Securing the Proxy Pattern
+### Securing the Proxy Pattern
 
 The proxy pattern splits the state and logic into different contracts, allowing the logic contract to be upgraded. This is achieved using a `delegatecall` from the state contract into the logic contract.
 
@@ -1383,12 +1387,9 @@ One of the dangers in this pattern is that the storage slot or offset could chan
 
 One way to mitigate this danger is to store the state variables in a single immutable contract, which is inherited by both the state and logic contract. This will work, but it does not future-proof against external changes that may result from changes to Solidity or the EVM.
 
-The best way we found to mitigate this danger is with runtime sanity checks. We hardcode the expected slot and offset of each state variable and assert the value every time the logic contract is updated. This is handled in the Staking Contract constructor [here](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/Staking.sol).
+The best way we found to mitigate this danger is with runtime sanity checks. We hardcode the expected slot and offset of each state variable and assert the value every time the logic contract is updated. This is handled in the `Staking` contract constructor [here](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/Staking.sol).
 
-See [LibProxy](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/libs/LibProxy.sol) for the proxy code.
-
-### 11.2 Tracking for Reward Balances for Pool Members
-
+### Tracking for Reward Balances for Pool Members
 
 This section describes the workflow for tracking and computing the portion of a pool's reward that belongs to a given member. The general equations for this are shown below.
 
@@ -1396,22 +1397,23 @@ A pool with _D_ delegated stake that earned _R_ rewards for its pool members in 
 
 <p align="center"><img src="./assets/reward_tracking/RewardSingleEpoch.png" height="60" /></p>
 
-
 The member's reward after n epochs (given member does not change their stake) is then given by:
 
 <p align="center"><img src="./assets/reward_tracking/RewardAfterManyEpochs.png" height="60" /></p>
 
+When a member modifies their stake in the pool, the [StoredBalance struct](https://github.com/0xProject/0x-monorepo/blob/development/contracts/staking/contracts/src/interfaces/IStructs.sol) gives us:
 
-When a member modifies their stake in the pool, the [StoredBalance struct](https://github.com/0xProject/0x-monorepo/blob/3.0/contracts/staking/contracts/src/interfaces/IStructs.sol) gives us:
 1. How many epochs since they last modified their stake (`n`)
 2. How much stake they had contributed during those epochs (`d`)
 
 In addition to these values, we also need sum of ratios `R_k / D_k`, for each epoch `k` that the member was delegated. This ratio is available during the pool's finalization of epoch `k`. We are able to store this information concisely using a cumulative sum of these reward ratios, as follows:
 
 We store the following ratio for each epoch that a reward is earned for the pool:
+
 <p align="center"><img src="./assets/reward_tracking/WhatWeStore.png" height="60" /></p>
 
 We compute a member's reward using the following equation:
+
 <p align="center"><img src="./assets/reward_tracking/RewardFromWhatWeStore.png" height="40" /></p>
 
 Example:
@@ -1421,6 +1423,7 @@ Example:
 With the cumulative reward along with the stored balance of a member, we are able to compute their reward in the pool at any time.
 
 This information is stored on-chain as follows:
+
 ```solidity
 // mapping from Owner to Pool Id to Amount Delegated
 mapping (address  =>  mapping (bytes32  => StoredBalance)) internal _delegatedStakeToPoolByOwner;
@@ -1432,24 +1435,23 @@ mapping (bytes32  => StoredBalance) internal _delegatedStakeByPoolId;
 mapping (bytes32  =>  mapping (uint256  => Fraction)) internal _cumulativeRewardsByPool;
 ```
 
-#### 11.2.1 Computing Rewards in Practice
+#### Computing Rewards in Practice
 
 In the equations above, a staker earned rewards from epochs `[0..n]`. This means that the staker modified between epochs `n` and stopped earning rewards in epoch `n+1`. So at the time of the call, we don't have access to the reward for epoch `n`.
 
 In practice, this equation becomes:
-<p align="center"><img src="./assets/reward_tracking/RewardAfterManyEpochs-InPractice.png" height="60" /></p>
 
+<p align="center"><img src="./assets/reward_tracking/RewardAfterManyEpochs-InPractice.png" height="60" /></p>
 
 The final equation for computing a member's reward during epoch `n` becomes:
 
 <p align="center"><img src="./assets/reward_tracking/Reward-Final.png" height="60" /></p>
 
-
-#### 11.2.2 Handling Epochs With No Rewards
+#### Handling Epochs With No Rewards
 
 To compute a member's reward using this algorithm, we need to know the cumulative rewards at the entry and exit epoch of the member. But, what happens if no reward was recorded during one of these epochs?
 
-In this case, there will be `nil` entry in `cumulativeRewardsByPool`. However, this isn't a problem. If a reward is earned in epoch *n* but not epoch *n + 1* then the cumulative rewards will not have changed. So in epoch *n + 1* we can simply use the entry for epoch *n*.
+In this case, there will be `nil` entry in `cumulativeRewardsByPool`. However, this isn't a problem. If a reward is earned in epoch _n_ but not epoch _n + 1_ then the cumulative rewards will not have changed. So in epoch _n + 1_ we can simply use the entry for epoch _n_.
 
 We keep track of the last epoch that the `cumulativeRewardsByPool` was updated in using the following state variable:
 
@@ -1458,14 +1460,14 @@ We keep track of the last epoch that the `cumulativeRewardsByPool` was updated i
 mapping (bytes32  =>  uint256) internal cumulativeRewardsByPoolLastStored;
 ```
 
-### 11.3 Stake Management
+### Stake Management
 
 Below are the design objectives of stake management:
 
 1. Depositing ZRX mints stake that is is undelegated by default.
 2. Withdrawing ZRX is done by unstaking; any undelegated stake can be unstaked.
-2. Delegating, un-delegating and re-delegating stake comes into effect next epoch.
-3. Users can freely adjust the distribution of their stake for the next epoch.
+3. Delegating, un-delegating and re-delegating stake comes into effect next epoch.
+4. Users can freely adjust the distribution of their stake for the next epoch.
 
 There are two statuses that stake can exist in: Undelegated or Delegated. Each has three fields:
 
