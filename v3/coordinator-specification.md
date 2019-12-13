@@ -399,7 +399,7 @@ Fill transaction requests should be rejected under the following conditions:
 
 All other fill requests must be approved by the Coordinator server exactly `SELECTIVE_DELAY_MS` milliseconds after the request is received.
 
-When a valid transaction request has been received, the Coordinator server must broadcast a [`FILL_REQUEST_RECEIVED`](#fill_request_received) message to all connected Websocket clients. After a duration of `SELECTIVE_DELAY_MS`, the server should approve the fill request and simultaneously broadcast a [`FILL_REQUEST_APPROVED`](#fill_request_approved) message to all connected Websocket clients (if any orders contained in the transaction have not been soft cancelled in the mean time).
+When a valid transaction request has been received, the Coordinator server must broadcast a [`FILL_REQUEST_RECEIVED`](#fill_request_received) message to all connected Websocket clients. After a duration of `SELECTIVE_DELAY_MS`, the server should approve the fill request and simultaneously broadcast a [`FILL_REQUEST_ACCEPTED`](#fill_request_accepted) message to all connected Websocket clients (if any orders contained in the transaction have not been soft cancelled in the mean time).
 
 ## Handling cancels
 
@@ -485,7 +485,7 @@ Some networks and their Ids:
 | 42         | Kovan               |
 | 1337       | 0x Ganache snapshot |
 
-If a certain chain is not supported, the response should **400** as specified in the [error response](#error-response) section. For example:
+If a certain chain is not supported, the response should **400** as specified in the [common error codes](#common-error-codes) section. For example:
 
 ```json
 {
