@@ -10,7 +10,7 @@ The simplified settlment process is:
     1. Transfer taker tokens from the *maker* into their Dydx account (deposit).
     2. Borrow maker tokens from the *maker's Dydx account* to the *taker* (withdraw).
 
-![settlement-diagram](https://raw.githubusercontent.com/0xProject/0x-protocol-specification/feat/dydx-bridge-orders/order-types/img/dydx-settlement.png)
+![settlement-diagram](https://raw.githubusercontent.com/0xProject/0x-protocol-specification/master/order-types/img/dydx-settlement.png)
 
 ## Required Approvals
 - Makers must approve the Dydx [`SoloMargin`](https://etherscan.io/address/0x1e0447b19bb6ecfdae1e4ae1694b0c3659614e4e) contract to spend any *taker* tokens they intend to deposit into their account.
