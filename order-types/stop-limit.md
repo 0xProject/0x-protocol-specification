@@ -26,7 +26,37 @@ To create a stop-limit 0x order, we need:
 - The price range in which we'd like the order to be executed. Note that the value returned by Chainlink reference contracts is the price multiplied by 100000000 ([source](https://docs.chain.link/docs/using-chainlink-reference-contracts#section-live-reference-data-contracts-ethereum-mainnet)).
 
 The contract addresses and parameters must be encoded as StaticCall asset data and included in one of the order's asset data fields.
-For example, consider an order selling ZRX for ETH. Normally, the `makerAssetData` of this order would be the ERC20 asset data encoding of the ZRX token address.
+For example, consider an order selling ZRX for ETH.
+
+### Option 1: makerFeeAssetData
+
+If the `makerFeeAssetData` would otherwise be unused, we can simply set it to be the stop-limit StaticCall asset data.
+During order settlement, the Exchange will dispatch the StaticCall proxy to call the stop-limit contract.
+
+In TypeScript, this would look something like the following:
+```typescript
+import { encodeStopLimitStaticCallData } from '@0x/contracts-integrations';
+import { assetDataUtils } from '@0x/order-utils';
+
+const makerFeeAssetData = encodeStopLimitStaticCallData(
+    chainlinkStopLimit.address,
+    chainLinkZrxEthAggregator.address,
+    minPrice,
+    maxPrice,
+);
+
+```
+
+In order to avoid unexpected behavior caused by rounding and overflow, we recommend setting the `makerFee` amount to equal the `makerAssetAmount` (in this case, the amount of ZRX being sold).
+Note that despite the non-zero `makerFee`, the maker will not be transferring any assets for the "transfer", we are simply repurposing the field to perform the stop-limit check.
+As such, the `feeRecipientAddress` can be set to an arbitrary address or the null address.
+
+### Option 2: Multi-asset makerAssetData
+
+Option 1 is the preferred way to create stop-limit orders for easy discoverability via [0x Mesh](https://github.com/0xProject/0x-mesh).
+However, if the maker would in fact like to use the maker fee field to transfer assets to a fee recipient, we can instead add the stop-limit check to the `makerAssetData`.
+
+Normally, the `makerAssetData` of a ZRX-ETH sell order would be the ERC20 asset data encoding of the ZRX token address.
 But to turn this into a stop-limit sell order, we can instead use [MultiAsset](https://github.com/0xProject/0x-protocol-specification/blob/master/asset-proxy/multi-asset-proxy.md) asset data, where the nested assets are ZRX and the stop-limit check (encoded as StaticCall asset data).
 During order settlement, the MultiAsset proxy will dispatch the ERC20 proxy to perform the ZRX transfer and then dispatch the StaticCall proxy to call the stop-limit contract.
 
