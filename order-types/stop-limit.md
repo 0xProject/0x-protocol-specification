@@ -40,9 +40,11 @@ import { assetDataUtils } from '@0x/order-utils';
 
 const makerFeeAssetData = encodeStopLimitStaticCallData(
     chainlinkStopLimit.address,
-    chainLinkZrxEthAggregator.address,
-    minPrice,
-    maxPrice,
+    {
+        oracle: chainLinkZrxEthAggregator.address,
+        minPrice,
+        maxPrice,
+    }
 );
 
 ```
@@ -71,9 +73,11 @@ const makerAssetData = assetDataUtils.encodeMultiAssetData(
         assetDataUtils.encodeERC20AssetData(zrxToken.address),
         encodeStopLimitStaticCallData(
             chainlinkStopLimit.address,
-            chainLinkZrxEthAggregator.address,
-            minPrice,
-            maxPrice,
+            {
+                oracle: chainLinkZrxEthAggregator.address,
+                minPrice,
+                maxPrice,
+            }
         ),
     ],
 );
