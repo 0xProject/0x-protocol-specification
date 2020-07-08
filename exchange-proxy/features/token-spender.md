@@ -1,24 +1,45 @@
-# TokenSpender
+# Exchange Proxy Featuer: `TokenSpender`
 
-We need a way to transfer funds from the taker into the Exchange proxy temporarily so we can perform transformations on it. We could simply have the taker set an allowance for the Exchange proxy, but this comes with some risk:
+## Summary
+A feature for managing and spending token allowances.
+
+## Motivation
+
+We need a feature that encapsulates the pattern and logic and of moving funds from a user for an operation.
+
+## Architecture
+
+![token-spender](https://raw.githubusercontent.com/0xProject/0x-protocol-specification/master/exchange-proxy/img/token-spender.png)
+
+### Functions
+The `TokenSpender` feature exposes the following functions:
+- `getAllowanceTarget()`
+  - Returns the address of the allowance target for tokens the Exchange Proxy can spend. *This is different from the Exchange Proxy itself.*
+- `getSpendableERC20BalanceOf(IERC20 token, address owner)`
+  - Returns the total quantity of an ERC20 token that can be moved from `owner` by the Exchange Proxy, given the current allowance and balance.
+- `_spendERC20Tokens(IERC20 token, address owner, address to, uint256 amount)`
+  - Move `amount` of `token` from `owner` to `to`. *Only callable from inside the Exchange Proxy itself.*
+
+## Implementation
+
+### AllowanceTarget
+
+Allowances are not set directly on the Exchange Proxy. There are a few good reasons for this:
 
 * Lack of separation of complex logic vs access to funds.
 * No easy way to detach allowances in case of a critical vulnerability.
 * Allowances do not migrate if we ever redeploy the Exchange proxy.
 * Dangling allowances if we decide to migrate the Exchange proxy to use the V3 asset proxies for allowances.
 
-So we opt for something akin to the role of asset proxies in V3, where takers must set their allowance to a separate, specialized spender contract accessible by the Exchange proxy. However, instead of having a single allowance contract for each asset type, we instead have a **single**, universal spender contract. Takers can get the address of this contract with `getAllowanceTarget()`.
+A separate contract, called the `AllowanceTarget`, will be the target for *all* token allowances. This contract is owned by the governor with the Exchange Proxy set as an authorized user.
 
-This universal allowance contract has a single `executeCall()` function which blindly `call`s calldata on the caller’s (Exchange Proxy) behalf. This contract is akin the `FlashWallet` used by `transformERC20()` with some notable differences:
+It exposes a single function, `executeCall(address target, bytes callData)`, which only the Exchange Proxy should be allowed to call. This function will perform a low-level `call()` to `target` passing `callData` as calldata. This allows the Exchange Proxy to perform token transfers from the context of the `AllowanceTarget`.
 
-* Implements the `Authorizable` mixin.
-    * Owner will be set to the governor.
-    * The `ZeroEx` contract will be the sole authorized address.
-* Cannot perform a `delegatecall`. Instead exposes an (authority-only) `executeCall()` function that simply forwards a call.
-* Is never intended to hold a balance.
 
-Through `executeCall()`, the Exchange proxy can call `transferFrom()` in the `AllowanceTarget`’s context to move taker funds. A dedicated feature, `TokenSpender`, will wrap this functionality with convenience functions such as `_spendERC20Tokens(token, from to, amount)`.
+### `_spendERC20Tokens()`
+This function is only callable from inside the Exchange Proxy itself. It moves tokens from an account that has granted the `AllowanceTarget` an allowance by calling `AllowanceTarget.executeCall(token, abi.encode(ERC20.transferFrom.selector, owner, to, amount))`.
 
-![token-spender](https://raw.githubusercontent.com/0xProject/0x-protocol-specification/master/exchange-proxy/img/token-spender.png)
-
-The `AllowanceTarget` instance is owned by the governor contract, so it can be detached in an emergency or a migration.
+## Risks & Mitigations
+- Unlike with the V3 Exchange asset proxies, each token standard does not have its own, distinct allowance target, potentially increasing the attack surface with each feature that interacts with the `AllowanceTarget`. Thus, it is essential that the `TokenSpender` feature be the only allowed means of accessing user allowances.
+- There is nothing technically preventing another feature from directly access the `AllowanceTarget`. Developers must not allow this pattern to be used.
+- The `AllowanceTarget` instance is owned by the governor contract, so it can be detached in an emergency or a migration.
