@@ -38,7 +38,7 @@ We define each of our desired transformations as “Transformer” contracts. Si
 
 `transformERC20()` executes each Transformer in sequence, manipulating the token balance held by the wallet. The final transformer will simply transfer the output token directly to the taker. This creates a composable pipeline of operations/transitions.
 
-![transform-pipeline](./img/transform-pipeline.png)
+![transform-pipeline](../img/transform-pipeline.png)
 
 ### Key Benefits
 
@@ -75,7 +75,7 @@ For example, if a taker wanted to do the following:
 
 The execution might look like:
 
-![transform-example](./img/transform-example.png)
+![transform-example](../img/transform-example.png)
 
 ### Locking Down Transformers
 

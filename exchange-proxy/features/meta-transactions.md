@@ -10,7 +10,7 @@ We want to migrate 0x-API, and therefore Matcha, away from using the V3 Exchange
 
 ## Architecture
 
-![meta-transactions](./img/exchange-proxy-mtxs.png)
+![meta-transactions](../img/exchange-proxy-mtxs.png)
 
 ## Implementation
 
