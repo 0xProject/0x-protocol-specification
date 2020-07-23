@@ -1,4 +1,4 @@
-# Exchange Proxy Featuer: `TokenSpender`
+# Exchange Proxy Feature: `TokenSpender`
 
 ## Summary
 A feature for managing and spending token allowances.
