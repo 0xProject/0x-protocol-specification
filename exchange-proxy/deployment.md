@@ -45,7 +45,7 @@ The following contracts need to be deployed individually. With the exception of 
 - Transformers (deployed through `TransformerDeployer`)
 
 ### 2. Wire it all together
-Afterwards, we call `FullMigration.initializeZeroEx()`. This will do several things:
+Afterwards, we call `FullMigration.initializeZeroEx()` (see the [ganache migration script](https://github.com/0xProject/0x-monorepo/blob/development/contracts/zero-ex/src/migration.ts#L173) for an example). This will do several things:
 - Create and configure the [`AllowanceTarget`](./features/token-spender#allowance-target) contract.
     - It will be owned by the configured owner (`ZeroExGovernor`) and the Exchange Proxy will be added as an authorized user.
 - Register and initialize all the features to the Exchange Proxy.
