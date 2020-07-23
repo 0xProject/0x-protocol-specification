@@ -6,16 +6,16 @@ This document outlines procedures for deploying and upgrading the Exchange Proxy
 
 The Exchange Proxy is composed of several independently deployed contracts that broadly fit into these categories:
 
-- [Exchange Proxy](./exchange-proxy) (`ZeroEx`)
+- [Exchange Proxy](./exchange-proxy.md) (`ZeroEx`)
     - This is the Exchange Proxy instance itself. It serves as the entry point for all transactions, which it will reroute to the appropriate feature contract.
 - [Features](./features)
     - These contracts contain the implementation code for features that will be registered to the Exchange Proxy. The Exchange Proxy will ultimately `delegatecall` into these contracts.
 - Migration contracts
     - These are one-shot contracts that aid in bootstrapping/configuring the Exchange Proxy during deployment. These contracts will typically self-destruct after use.
-- [Transformers](./features/transform-erc20#transformers)
+- [Transformers](./features/transform-erc20.md#transformers)
     - These are the composable transformations used by the `TransformERC20` feature.
 - [`TransformerDeployer`](https://github.com/0xProject/0x-monorepo/blob/development/contracts/zero-ex/contracts/src/external/TransformerDeployer.sol)
-    - This is the contract that will be used to deploy the individual transformer contracts. Transformers [must](./features/transform-erc20#locking-down-transformers) be deployed by a designated address.
+    - This is the contract that will be used to deploy the individual transformer contracts. Transformers [must](./features/transform-erc20.md#locking-down-transformers) be deployed by a designated address.
 
 This diagram loosely illustrates the direct dependencies of each contract in the system.
 
@@ -46,7 +46,7 @@ The following contracts need to be deployed individually. With the exception of 
 
 ### 2. Wire it all together
 Afterwards, we call `FullMigration.initializeZeroEx()` (see the [ganache migration script](https://github.com/0xProject/0x-monorepo/blob/development/contracts/zero-ex/src/migration.ts#L173) for an example). This will do several things:
-- Create and configure the [`AllowanceTarget`](./features/token-spender#allowance-target) contract.
+- Create and configure the [`AllowanceTarget`](./features/token-spender.md#allowance-target) contract.
     - It will be owned by the configured owner (`ZeroExGovernor`) and the Exchange Proxy will be added as an authorized user.
 - Register and initialize all the features to the Exchange Proxy.
     - The `TransformERC20` feature will deploy a new `FlashWallet` instance during initialization.
