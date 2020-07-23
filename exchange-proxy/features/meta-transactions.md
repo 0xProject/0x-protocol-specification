@@ -10,11 +10,11 @@ We want to migrate 0x-API, and therefore Matcha, away from using the V3 Exchange
 
 ## Architecture
 
-![meta-transactions](https://raw.githubusercontent.com/0xProject/0x-protocol-specification/master/exchange-proxy/img/exchange-proxy-mtxs.png)
+![meta-transactions](./img/exchange-proxy-mtxs.png)
 
 ## Implementation
 
-In the [V3 Exchange architecture](https://github.com/0xProject/0x-protocol-specification/blob/master/v3/v3-specification.md#transactions), we simply set a `currentContextAddress` storage variable to the meta-transaction owner then `delegatecall`ed ourselves with the provided calldata. This pattern does not work for the Exchange Proxy.
+In the [V3 Exchange architecture](../../v3/v3-specification.md#transactions), we simply set a `currentContextAddress` storage variable to the meta-transaction owner then `delegatecall`ed ourselves with the provided calldata. This pattern does not work for the Exchange Proxy.
 
 It would be pretty risky for the Exchange Proxy to `delegatecall` user-supplied calldata because there are several, sensitive “internal” functions registered to the Exchange Proxy that are guarded by an `onlySelf` modifier (`msg.sender == address(this)`). So some kind of white-list would be required.
 
@@ -73,12 +73,12 @@ The feature exposes the following functions:
 * `getMetaTransactionHashExecutedBlock()` Get the block height at which a meta-transaction *has* was executed (0 if never executed).
 
 ### Signatures
-Meta-transactions can be signed via any signature type supported by the [`SignatureValidator` feature](./signature-validator), since signature validation is entirely delegated to that feature.
+Meta-transactions can be signed via any signature type supported by the [`SignatureValidator` feature](./signature-validator.md), since signature validation is entirely delegated to that feature.
 
 ### Supported Functions
-Only the [`TransformERC20.transformERC20()`](./transform-erc20) function is currently supported.
+Only the [`TransformERC20.transformERC20()`](./transform-erc20.md) function is currently supported.
 
-The `MetaTransactions` feature understands [signed calldata](./transform-erc20#signed-calldata) to `TransformERC20.transformERC20()`. It uses the same parsing and validation library as the `TransformERC20` feature to signatures embedded in the meta-transaction's `callData` field.
+The `MetaTransactions` feature understands [signed calldata](./transform-erc20.md#signed-calldata) to `TransformERC20.transformERC20()`. It uses the same parsing and validation library as the `TransformERC20` feature to signatures embedded in the meta-transaction's `callData` field.
 
 ### Replay Protection
 When a meta-transaction executes successfully, the feature will remember the block height at which it was executed. This state will be checked again to prevent a meta-transaction from being executed twice. This state is owned by this feature.
@@ -89,8 +89,8 @@ All meta-transaction functions are reentrant by design, meaning meta-transaction
 ## Integrations
 A couple things to note for integrations.
 - These meta-transactions only work for operations inside the Exchange Proxy (not the V3 Exchange):
-- [`TransformERC20.transformERC20()`](./signature-validator) is the only supported function at the time of this writing.
-- The allowed signature are those supported by the [`SignatureValidator`](./signature-validator) feature.
+- [`TransformERC20.transformERC20()`](./signature-validator.md) is the only supported function at the time of this writing.
+- The allowed signature are those supported by the [`SignatureValidator`](./signature-validator.md) feature.
 
 ## Challenges
-Meta-transactions still suffer from the same taker-related issues as the [TransformERC20 feature](./transform-erc20#rfq-models).
+Meta-transactions still suffer from the same taker-related issues as the [TransformERC20 feature](./transform-erc20.md#rfq-models).

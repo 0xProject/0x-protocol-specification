@@ -15,7 +15,7 @@ The `TransformERC20` feature exposes a `transformERC20()` function that agnostic
 2. Perform arbitrary transformations (provided by the taker) on the tokens we hold.
 3. Validate that the taker has received Y output tokens.
 
-We don’t particularly care what goes on inside the transformations so long as the taker winds up receiving the required amount of output tokens at the end of it. This is similar to how [ERC20Bridges](https://github.com/0xProject/0x-protocol-specification/blob/master/asset-proxy/erc20-bridge-proxy.md) operate, in that the `ERC20BridgeProxy` does not know what the bridges are doing, but asserts at the end that the taker has received enough maker tokens
+We don’t particularly care what goes on inside the transformations so long as the taker winds up receiving the required amount of output tokens at the end of it. This is similar to how [ERC20Bridges](../../asset-proxy/erc20-bridge-proxy.md) operate, in that the `ERC20BridgeProxy` does not know what the bridges are doing, but asserts at the end that the taker has received enough maker tokens
 
 ### Transformers
 
@@ -38,7 +38,7 @@ We define each of our desired transformations as “Transformer” contracts. Si
 
 `transformERC20()` executes each Transformer in sequence, manipulating the token balance held by the wallet. The final transformer will simply transfer the output token directly to the taker. This creates a composable pipeline of operations/transitions.
 
-![transform-pipeline](https://raw.githubusercontent.com/0xProject/0x-protocol-specification/master/exchange-proxy/img/transform-pipeline.png)
+![transform-pipeline](./img/transform-pipeline.png)
 
 ### Key Benefits
 
@@ -75,7 +75,7 @@ For example, if a taker wanted to do the following:
 
 The execution might look like:
 
-![transform-example](https://raw.githubusercontent.com/0xProject/0x-protocol-specification/master/exchange-proxy/img/transform-example.png)
+![transform-example](./img/transform-example.png)
 
 ### Locking Down Transformers
 

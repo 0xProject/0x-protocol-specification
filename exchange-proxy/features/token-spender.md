@@ -9,7 +9,7 @@ We need a feature that encapsulates the pattern and logic and of moving funds fr
 
 ## Architecture
 
-![token-spender](https://raw.githubusercontent.com/0xProject/0x-protocol-specification/master/exchange-proxy/img/token-spender.png)
+![token-spender](./img/token-spender.png)
 
 ### Functions
 The `TokenSpender` feature exposes the following functions:

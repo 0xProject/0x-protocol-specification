@@ -19,7 +19,7 @@ The `SignatureValidator` is entirely stateless and exposes two functions for val
 ## Implementation
 
 ### Format
-Signatures are constructed similar to those used by the [V3 Exchange](https://github.com/0xProject/0x-protocol-specification/blob/master/v3/v3-specification.md#signature-types):
+Signatures are constructed similar to those used by the [V3 Exchange](../../v3/v3-specification.md#signature-types):
 
 ```solidity
 abi.encodePacked(bytes(signature), uint8(signatureType))
