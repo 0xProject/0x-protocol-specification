@@ -84,7 +84,10 @@ The `MetaTransactions` feature understands [signed calldata](./transform-erc20.m
 When a meta-transaction executes successfully, the feature will remember the block height at which it was executed. This state will be checked again to prevent a meta-transaction from being executed twice. This state is owned by this feature.
 
 ### Reentrancy
-All meta-transaction functions are reentrant by design, meaning meta-transactions can execute other meta-transactions. Reentrancy issues should be identified and prevented at the target function level.
+All functions that execute meta-transactions (`executeMetaTransaction()` and `batchExecuteMetaTransactions()`) are under the same reentrancy guard.
+
+### Value Refunds
+At the end of `executeMetaTransaction()` and `batchExecuteMetaTransactions()`, any ETH held by the Exchange Proxy *up to the original `msg.value`* will be returned to the caller. This ETH will typically be unspent protocol fees from `TransformERC20.transformERC20()`.
 
 ## Integrations
 A couple things to note for integrations.
